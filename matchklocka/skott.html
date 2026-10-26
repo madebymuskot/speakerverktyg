@@ -46,8 +46,6 @@ table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:ta
 <h2>Statistik</h2>
 <table id="tab"></table>
 <div class="bar np" style="margin-top:14px"><button class="sm" onclick="csv()">Ladda ner CSV</button><button class="sm" onclick="print()">Skriv ut</button><button class="sm rd" onclick="clr()">Rensa statistik</button></div>
-<h2 class="np">Matchklocka</h2>
-<div class="bar np"><label class="sw"><input type="checkbox" id="push" onchange="X.push=this.checked;sv();if(X.push)pushMK()"> Skicka SOG till matchklockan (samma webbläsare som Kontroll)</label></div>
 </main>
 <script src="aktuell.js"></script>
 <script>
@@ -55,7 +53,7 @@ const KEY='matchklocka_state_v1',XK='skott_v1',PER=['P1','P2','P3','OT'],$=i=>do
 const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();
 const z=()=>({sog:[0,0],pos:[0,0]});
 let X;try{X=JSON.parse(localStorage.getItem(XK))}catch(e){}
-X=Object.assign({per:'P1',d:{},cur:null,since:0,paused:false,undo:[],push:false},X||{});PER.forEach(p=>X.d[p]=X.d[p]||z());
+X=Object.assign({per:'P1',d:{},cur:null,since:0,paused:false,undo:[]},X||{});PER.forEach(p=>X.d[p]=X.d[p]||z());
 const sv=()=>{try{localStorage.setItem(XK,JSON.stringify(X))}catch(e){}};
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const A=window.AKTUELL||null;
@@ -69,16 +67,12 @@ const ticking=()=>live()?!!S.clock.running&&/^(P[1-3]|OT)$/.test(S.period)&&!(S.
 function bank(){const n=Date.now();if(X.cur!=null&&X.on)X.d[X.per].pos[X.cur]+=n-X.since;X.since=n;X.on=ticking()}
 function sync(){const p=mkPer();if(p&&p!==X.per){bank();X.per=p;sv()}const o=ticking();if(o!==!!X.on){bank();sv()}}
 function snap(){X.undo.push(JSON.stringify({per:X.per,d:X.d,cur:X.cur}));if(X.undo.length>50)X.undo.shift()}
-function shot(t,d){bank();snap();const a=X.d[X.per].sog;a[t]=Math.max(0,a[t]+d);sv();render();pushMK()}
+function shot(t,d){bank();snap();const a=X.d[X.per].sog;a[t]=Math.max(0,a[t]+d);sv();render()}
 function poss(t){if(t===X.cur)return;bank();snap();X.cur=t;sv();render()}
 function setPer(p){if(mkPer())return;bank();snap();X.per=p;sv();render()}
 function manPause(v){bank();X.paused=v;X.on=ticking();sv();render()}
-function undo(){const u=X.undo.pop();if(!u)return;bank();const o=JSON.parse(u);X.per=o.per;X.d=o.d;X.cur=o.cur;X.since=Date.now();sv();render();pushMK()}
+function undo(){const u=X.undo.pop();if(!u)return;bank();const o=JSON.parse(u);X.per=o.per;X.d=o.d;X.cur=o.cur;X.since=Date.now();sv();render()}
 function clr(){if(!confirm('Rensa all skott- och innehavsstatistik?'))return;X.d={};PER.forEach(p=>X.d[p]=z());X.cur=null;X.undo=[];X.since=Date.now();if(!mkPer())X.per='P1';sv();render()}
-/* Skickar aktuell periods SOG till matchklockan (endast om påslaget). Kontroll tar emot state med högre v. */
-function pushMK(){if(!X.push)return;rd();if(!S||!S.shots)return;const p=S.period;if(!/^(P[1-3]|OT)$/.test(p)||p!==X.per)return;
- const a=X.d[p].sog;if(S.shots[0]===a[0]&&S.shots[1]===a[1])return;S.shots=a.slice();S.shotPer=p;S.v=Date.now();
- try{localStorage.setItem(KEY,JSON.stringify(S));new BroadcastChannel('matchklocka').postMessage(S)}catch(e){}}
 const cur=p=>{const v=X.d[p].pos.slice();if(p===X.per&&X.cur!=null&&X.on)v[X.cur]+=Date.now()-X.since;return v};
 const sum=f=>PER.reduce((a,p)=>{const v=f(p);return[a[0]+v[0],a[1]+v[1]]},[0,0]);
 const mmss=ms=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
@@ -90,7 +84,7 @@ function render(){const mp=mkPer();
  $('perInfo').textContent=mp?'Perioden följer matchklockan':'Välj period manuellt (matchklockan inte aktiv i denna webbläsare)';
  [0,1].forEach(t=>{$('n'+t).textContent=sname(t);$('s'+t).textContent=X.d[X.per].sog[t];$('t'+t).textContent='SOG '+X.per+' · tot '+sum(p=>X.d[p].sog)[t];$('p'+t).textContent=sname(t)});
  [0,1,2].forEach(i=>$('p'+i).classList.toggle('on',(i===2?null:i)===X.cur));
- $('pauseW').style.display=live()?'none':'';$('mPause').checked=!!X.paused;$('push').checked=!!X.push;$('undoB').disabled=!X.undo.length;
+ $('pauseW').style.display=live()?'none':'';$('mPause').checked=!!X.paused;$('undoB').disabled=!X.undo.length;
  tickPos();
  const rows=PER.filter(used).map(p=>{const d=X.d[p],v=cur(p),q=pct(v);return`<tr class="${p===X.per?'cur':''}"><td>${p}</td><td>${d.sog[0]}</td><td>${d.sog[1]}</td><td>${q[0]}% (${mmss(v[0])})</td><td>${q[1]}% (${mmss(v[1])})</td></tr>`});
  const ts=sum(p=>X.d[p].sog),tv=sum(cur),tq=pct(tv);

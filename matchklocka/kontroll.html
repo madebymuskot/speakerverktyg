@@ -25,7 +25,7 @@ function team(t){const s=MK.state;$('t'+t).innerHTML=`<h2>${t?'Borta':'Hemma'}</
 <button title="Återställ till swehockey-namnet" ${(s.swName||[])[t]?'':'disabled'} onclick="MK.state.${t?'away':'home'}=MK.state.swName[${t}];MK.save()">↺</button>
 <label class="sm">Kort (TV) <input id="ab${t}" maxlength="4" style="width:70px;text-transform:uppercase" value="${(s.short||[])[t]||''}" placeholder="${MK.ab(t?s.away:s.home)}" onchange="MK.state.short=MK.state.short||['',''];MK.state.short[${t}]=this.value.trim().toUpperCase();MK.save()"></label></div></div>
 <div class="tr"><span class="lb">Mål</span><div class="rw"><b class="big tnum gsc">${s.goals[t]}</b><button class="gpm" title="Mål +1" onclick="MK.goal(${t},1)">+</button><button class="gpm" title="Mål −1" onclick="MK.goal(${t},-1)">−</button></div></div>
-<div class="tr"><span class="lb">Skott</span><div class="rw"><b class="tnum mid" id="sh${t}">${s.shots[t]}</b><small style="color:#777;font-size:12px;margin:0 6px">tot ${MK.shotTot(s,t)}</small><button onclick="MK.shot(${t},1)">+</button><button onclick="MK.shot(${t},-1)">−</button></div></div>
+<div class="tr"><span class="lb">Skott</span><div class="rw"><b class="tnum mid" id="sh${t}">${s.shots[t]}</b><small class="sg" id="sgp${t}"></small><small style="color:#777;font-size:12px;margin:0 6px">tot ${MK.shotTot(s,t)}<span class="sg" id="sgt${t}"></span></small><button onclick="MK.shot(${t},1)">+</button><button onclick="MK.shot(${t},-1)">−</button></div></div>
 <div class="tr"><span class="lb">Utvisning</span><div class="rw"><input placeholder="Nr" id="pn${t}" list="dl${t}" autocomplete="off" class="pnr" style="width:70px" oninput="const v=this.value.replace(/\\D/g,'').slice(0,2);if(this.value!==v)this.value=v;$('pnm${t}').textContent=MK.pname2(MK.state,${t},v)">${['2','2+2','5','10','2+10','5+20'].map(k=>`<button onclick="pen(${t},'${k}')">${k}</button>`).join('')}</div></div><datalist id="dl${t}">${((s.rosters||[])[t]||[]).map(p=>`<option value="#${p.no} ${String(p.name).replace(/"/g,'&quot;')}${p.pos?' ('+p.pos+')':''}"></option>`).join('')}</datalist><div class="tr"><span></span><div><span id="pnm${t}" style="color:#FF6B70"></span></div> 
 </div><div class="tr"><span></span><div id="pl${t}"></div></div><details style="margin-left:98px"><summary style="color:#bbb;cursor:pointer">Laglista (klicka nr)</summary>${((s.rosters||[])[t]||[]).map(p=>`<button style="font-size:13px;padding:3px 6px" onclick="$('pn${t}').value='${p.no}';$('pnm${t}').textContent='${p.name.replace(/'/g,'')}'">${p.no} ${p.name}</button>`).join('')||'<i>Ingen laglista – skriv nr manuellt</i>'}</details>`}
 function pen(t,m){const n=$('pn'+t).value.trim()||'?';MK.addPen(t,n,m,false);$('pn'+t).value=''}
@@ -109,4 +109,13 @@ const up=()=>{const s=MK.state,c=MK.current(s),e=$('elap');if(!e)return;let t=''
   else{const L=MK.periodLen(s.period),dn=MK.dir(s)!=='up'||s.period==='PAUS';
    if(v!=null&&v<=g.max){t=(dn?(s.period==='PAUS'?'gått ':'spelat '):'kvar ')+F(g.max-v)}
    else{const r=MK.remain(s);t=dn?(s.period==='PAUS'?'gått ':'spelat ')+F(L-r):'kvar '+F(r)}}}
- if(e.textContent!==t)e.textContent=t};setInterval(up,100);up()})()</script></body></html>
+ if(e.textContent!==t)e.textContent=t};setInterval(up,100);up()})()</script><script>/* Läktarstatistik (skott.html, nyckel skott_v1): visas skrivskyddat i parentes. Skrivs aldrig in i matchklockans state. */
+(()=>{const g=()=>{try{return JSON.parse(localStorage.getItem('skott_v1'))}catch(e){return null}};
+const up=()=>{const X=g(),s=typeof MK!=='undefined'&&MK.state;const d=X&&X.d,per=s&&s.period;let has=false,c=[0,0],t=[0,0];
+ if(d){for(const k in d){const v=(d[k]&&d[k].sog)||[0,0];t[0]+=v[0];t[1]+=v[1]}has=t[0]+t[1]>0;if(d[per])c=d[per].sog}
+ [0,1].forEach(i=>{const p=document.getElementById('sgp'+i),q=document.getElementById('sgt'+i);
+  if(p){const x=has?' ('+c[i]+')':'';if(p.textContent!==x)p.textContent=x;p.title='Läktarens SOG denna period'}
+  if(q){const x=has?' ('+t[i]+')':'';if(q.textContent!==x)q.textContent=x}})};
+addEventListener('storage',e=>{if(e.key==='skott_v1')up()});setInterval(up,500);up()})();</script>
+<style>.sg{color:#888;font-size:14px;font-weight:400;margin-left:4px}small .sg{font-size:12px;margin-left:2px}</style>
+</body></html>

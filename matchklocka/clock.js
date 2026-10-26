@@ -86,14 +86,15 @@ MK.setPeriod=p=>{MK.commit();const s=MK.state;s.openSince=null;s.clock.running=f
 // Dubbel 2+2: bara pågående del avslutas (andra delen startar då direkt). 2+10: 10:an startar direkt (R22.3).
 MK.goal=(t,d)=>{MK.commit();const s=MK.state;s.goals[t]=Math.max(0,s.goals[t]+d);
   if(d>0){const o=1-t,st=MK.strength(s);
-    if(st&&st.pp===t){const two=MK.activePens(s,o).filter(p=>p.kind==='min').sort((a,b)=>a.left-b.left)[0];if(two)s.pens[o]=s.pens[o].filter(p=>p!==two)}}
+    if(st&&st.pp===t){const two=MK.activePens(s,o).filter(p=>p.kind==='min').sort((a,b)=>a.left-b.left)[0];if(two){MK.noteDel(o,two.id);s.pens[o]=s.pens[o].filter(p=>p!==two)}}}
   MK.save()};
 MK.shot=(t,d)=>{MK.state.shots[t]=Math.max(0,MK.state.shots[t]+d);MK.save()};
 MK.PENTYPES={'2':[[2,'min']],'2+2':[[2,'min'],[2,'min']],'5':[[5,'maj']],'10':[[10,'mis']],'2+10':[[2,'min'],[10,'mis']],'5+20':[[5,'maj'],[20,'gm']]};
 MK.addPen=(t,nr,type,coin)=>{MK.commit();const s=MK.state;let prev=null;type=String(type);
   for(const[m,kind]of MK.PENTYPES[type]||[[+type,'min']]){const p={id:s.pid++,nr,min:m,kind,left:m*60000,coin:!!coin&&kind!=='mis'&&kind!=='gm',after:prev,lbl:type};
     if(prev){const i=s.pens[t].findIndex(q=>q.id===prev);s.pens[t].splice(i+1,0,p)}else s.pens[t].push(p);prev=p.id}MK.save()};
-MK.delPen=(t,id)=>{MK.commit();MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
+MK.noteDel=(t,id)=>{const s=MK.state;s.dels=(s.dels||[]).concat(t+':'+id).slice(-30)};
+MK.delPen=(t,id)=>{MK.commit();MK.noteDel(t,id);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
 MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.now()+30000};MK.save()};
 MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs

@@ -271,16 +271,17 @@ const pname=(i,nr)=>{try{const p=D.teams[i].players.find(x=>String(x.no)===Strin
 const tick=()=>{const s=S;if(!s||!s.clock||!s.pens||Date.now()-(s.v||0)>6*3600e3||!/^(P\d|OT)$/.test(s.period)){if(cur&&!cur.end)close();return}
  const e=s.clock.running?Date.now()-s.clock.startedAt:0;
  if(cur){const ps=s.pens[cur.t]||[],p=ps.find(x=>x.id===cur.id);let left=p?sim(ps,e).L.get(p.id):null;
+  if(!p&&(s.dels||[]).includes(cur.t+':'+cur.id)){cur=null;box.hidden=true;return} // kryssad (✕) eller mål – försvinner i alla faser
   if(!cur.end){if(p&&p.coin){cur=null;box.hidden=true;return}
    if(!p&&cur.last>1000){cur=null;box.hidden=true;return} // borttagen tidigt (mål/radering)
    if(p&&left>0){cur.last=left;$f('fulltS').textContent=Math.ceil(left/1000)+' s kvar · '+cur.who;return}
-   cur.end=true;$f('fulltT').textContent=cur.lab+' FULLTALIGT – säg nu';$f('fulltS').textContent=cur.who+' ut';box.style.background='#2ecc40';beep()}
+   cur.end=true;$f('fulltT').textContent=cur.restore?cur.lab+' fulltaligt!':cur.who.split(' ')[0]+' ut – '+cur.lab+' fortf. i numerärt underläge';$f('fulltS').textContent=cur.who+(cur.restore?' tillbaka på isen':' ut ur utvisningsbåset');$f('fulltT').style.fontSize='52px';box.style.background='#2ecc40';beep()}
   return}
  const sk=seen(),sid=s.gid||'x';
  for(const t of[0,1]){const ps=s.pens[t]||[];const r=sim(ps,e);for(const p of r.slot){const left=r.L.get(p.id);if(!(left>0&&left<=10000))continue;
    const k=sid+':'+t+':'+p.id+':'+p.nr;if(sk[k])continue;
    const after=sim(ps,e+left+1).slot.length,restore=after<r.slot.length;const tn=tname(s,t);
-   cur={k,t,id:p.id,lab:tn.lab,who:'#'+p.nr+pname(tn.i,p.nr),last:left,end:false};mark(k);
+   cur={k,t,id:p.id,lab:tn.lab,who:'#'+p.nr+pname(tn.i,p.nr),last:left,end:false,restore};$f('fulltT').style.fontSize='';mark(k);
    $f('fulltT').textContent=tn.lab+(restore?' fulltaligt om 10 s':' – #'+p.nr+' ut om 10 s');$f('fulltS').textContent=Math.ceil(left/1000)+' s kvar · '+cur.who;
    box.style.background='#FFB000';box.hidden=false;beep();return}}};
 setInterval(tick,250);})();</script><script>/* Tid kvar-påminnelse: P1/P2 1 min, P3 2 min (räknar på kvarvarande periodtid, upp- eller nedräkning). Visas inte om tiden redigeras förbi. */

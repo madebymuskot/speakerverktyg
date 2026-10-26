@@ -20,24 +20,25 @@ MK.save=function(){MK.state.v=Date.now();MK.transports.forEach(t=>t.publish(MK.s
 MK.elapsed=s=>s.clock.running?Date.now()-s.clock.startedAt:0;
 MK.remain=s=>Math.max(0,s.clock.remain-MK.elapsed(s));
 MK.activePens=(s,t)=>s.pens[t].filter(p=>p.min!==10).slice(0,2); // max 2 samtidigt räknas ner
-MK.penLeft=(s,p,t)=>{const act=MK.activePens(s,t).includes(p)||p.min===10;return Math.max(0,p.left-(act?MK.elapsed(s):0))};
+MK.penEl=s=>s.period==='PAUS'||s.period==='SLUT'?0:MK.elapsed(s); // utvisningar står still i pausen, fortsätter i nästa period
+MK.penLeft=(s,p,t)=>{const act=MK.activePens(s,t).includes(p)||p.min===10;return Math.max(0,p.left-(act?MK.penEl(s):0))};
 MK.fmt=ms=>{if(ms<60000&&ms>0){const t=Math.floor(ms/100);return Math.floor(t/10)+','+(t%10)}
   const sec=Math.ceil(ms/1000);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 MK.fmtP=ms=>{const sec=Math.ceil(ms/1000);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
-MK.pname=p=>({P1:'1:a perioden',P2:'2:a perioden',P3:'3:e perioden',OT:'Förlängning',PAUS:'Paus'})[p]||p;
-MK.pshort=p=>({P1:'P1',P2:'P2',P3:'P3',OT:'OT',PAUS:'PAUS'})[p]||p;
+MK.pname=p=>({P1:'1:a perioden',P2:'2:a perioden',P3:'3:e perioden',OT:'Förlängning',PAUS:'Paus',SLUT:'Slut'})[p]||p;
+MK.pshort=p=>({P1:'P1',P2:'P2',P3:'P3',OT:'OT',PAUS:'PAUS',SLUT:'SLUT'})[p]||p;
 // Mutationer (används av kontroll)
-MK.commit=function(){const s=MK.state,e=MK.elapsed(s);if(!s.clock.running)return;
+MK.commit=function(){const s=MK.state,e0=MK.elapsed(s),e=MK.penEl(s);if(!s.clock.running)return;
   for(const t of[0,1]){const act=MK.activePens(s,t);s.pens[t].forEach(p=>{if(act.includes(p)||p.min===10)p.left-=e});
     s.pens[t]=s.pens[t].filter(p=>p.left>0)}
-  s.clock.remain=Math.max(0,s.clock.remain-e);s.clock.startedAt=Date.now();};
+  s.clock.remain=Math.max(0,s.clock.remain-e0);s.clock.startedAt=Date.now();};
 MK.start=()=>{const s=MK.state;if(s.clock.running||s.clock.remain<=0)return;s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
 MK.stop=()=>{const s=MK.state;if(!s.clock.running)return;MK.commit();s.clock.running=false;MK.save()};
 MK.toggle=()=>MK.state.clock.running?MK.stop():MK.start();
 MK.adjust=ms=>{MK.commit();const s=MK.state,max=MK.periodLen(s.period);s.clock.remain=Math.min(max,Math.max(0,s.clock.remain+ms));MK.save()};
 MK.setTime=ms=>{MK.commit();MK.state.clock.remain=Math.max(0,ms);MK.save()};
 MK.periodLen=p=>{const l=MK.state.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT:l.P)*60000};
-MK.setPeriod=p=>{MK.commit();const s=MK.state;s.clock.running=false;s.period=p;s.clock.remain=MK.periodLen(p);MK.save()};
+MK.setPeriod=p=>{MK.commit();const s=MK.state;s.clock.running=false;s.period=p;s.next=null;s.clock.remain=p==='SLUT'?0:MK.periodLen(p);MK.save()};
 MK.goal=(t,d)=>{MK.commit();const s=MK.state;s.goals[t]=Math.max(0,s.goals[t]+d);
   if(d>0){const o=1-t,ao=MK.activePens(s,o),at=MK.activePens(s,t); // motståndarens 2-minuters tas bort vid mål i numerärt överläge
     if(ao.length>at.length){const two=ao.filter(p=>p.min===2).sort((a,b)=>a.left-b.left)[0];if(two)s.pens[o]=s.pens[o].filter(p=>p!==two)}}
@@ -75,3 +76,11 @@ MK.fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/
   if(teams.length<2)throw Error('Ingen laguppställning hittades');teams.forEach(t=>t.players.sort((a,b)=>a.no-b.no));return teams};
 MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;s.gid=gid;s.home=t[0].name;s.away=t[1].name;s.rosters=[t[0].players,t[1].players];MK.save();return t};
 MK.pname2=(s,t,nr)=>{const p=((s.rosters||[])[t]||[]).find(p=>p.no==nr);return p?p.name:''};
+// Automatiskt matchflöde: period slut -> paus (räknar ner) -> nästa period laddad, stoppad
+MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]?'OT':'SLUT',OT:'SLUT'})[s.period]||null;
+MK.autoTick=function(){const s=MK.state;if(!s.clock.running||MK.remain(s)>0)return;
+  if(s.period==='PAUS'){const n=s.next||'P2';MK.setPeriod(n);return}
+  MK.stop();const n=MK.nextOf(s);if(!n)return;
+  if(n==='SLUT'){s.period='SLUT';s.next=null;s.clock.remain=0;MK.save();return}
+  s.period='PAUS';s.next=n;s.clock.remain=MK.periodLen('PAUS');s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
+MK.nextLabel=s=>s.period==='PAUS'&&s.next?'Nästa: '+s.next:'';

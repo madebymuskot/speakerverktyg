@@ -9,5 +9,5 @@ body{height:100vh;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;
 <div></div><div class="bot"><div><div class="sh">SKOTT <b class="tnum" id="s0"></b></div><div id="u0"></div></div><div style="text-align:right"><div class="sh">SKOTT <b class="tnum" id="s1"></b></div><div id="u1"></div></div></div>
 <div id="ov"></div><script src="clock.js"></script><script>const $=i=>document.getElementById(i);
 MK.view(s=>{$('h').textContent=s.home;$('a').textContent=s.away;$('g0').textContent=s.goals[0];$('g1').textContent=s.goals[1];$('c').textContent=MK.fmtShown(s);
-$('p').textContent=MK.pname(s.period).toUpperCase();$('s0').textContent=s.shots[0];$('s1').textContent=s.shots[1];$('u0').innerHTML=MK.pensHTML(s,0,'pn');$('u1').innerHTML=MK.pensHTML(s,1,'pn');
+$('p').textContent=MK.pname(s.period).toUpperCase()+(s.period==='PAUS'&&s.next?' · NÄSTA '+s.next:'');$('s0').textContent=s.shots[0];$('s1').textContent=s.shots[1];$('u0').innerHTML=MK.pensHTML(s,0,'pn');$('u1').innerHTML=MK.pensHTML(s,1,'pn');
 const o=MK.overlay(s);$('ov').style.display=o?'grid':'none';if(o)$('ov').innerHTML=`<div>${o.k}<b class="tnum">${o.v}</b></div>`})</script></body></html>

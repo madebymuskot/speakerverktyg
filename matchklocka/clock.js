@@ -40,8 +40,8 @@ MK.setTime=ms=>{MK.commit();MK.state.clock.remain=Math.max(0,ms);MK.save()};
 MK.periodLen=p=>{const l=MK.state.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT:l.P)*60000};
 MK.setPeriod=p=>{MK.commit();const s=MK.state;s.clock.running=false;s.period=p;s.next=null;s.clock.remain=p==='SLUT'?0:MK.periodLen(p);MK.save()};
 MK.goal=(t,d)=>{MK.commit();const s=MK.state;s.goals[t]=Math.max(0,s.goals[t]+d);
-  if(d>0){const o=1-t,ao=MK.activePens(s,o),at=MK.activePens(s,t); // motståndarens 2-minuters tas bort vid mål i numerärt överläge
-    if(ao.length>at.length){const two=ao.filter(p=>p.min===2).sort((a,b)=>a.left-b.left)[0];if(two)s.pens[o]=s.pens[o].filter(p=>p!==two)}}
+  if(d>0){const o=1-t,st=MK.strength(s); // motståndarens kortaste 2-minuters tas bort vid mål i numerärt överläge (samma numerär som TV)
+    if(st&&st.pp===t){const ao=MK.activePens(s,o).filter(p=>MK.penLeft(s,p,o)>0);const two=ao.filter(p=>p.min===2).sort((a,b)=>a.left-b.left)[0];if(two)s.pens[o]=s.pens[o].filter(p=>p!==two)}}
   MK.save()};
 MK.shot=(t,d)=>{MK.state.shots[t]=Math.max(0,MK.state.shots[t]+d);MK.save()};
 MK.addPen=(t,nr,min)=>{MK.commit();const s=MK.state;s.pens[t].push({id:s.pid++,nr,min,left:min*60000});MK.save()};
@@ -93,6 +93,8 @@ MK.autoTick=function(){const s=MK.state;
 MK.nextLabel=s=>s.period==='PAUS'&&s.next?'Nästa: '+s.next:'';
 MK.ab=n=>n.replace(/\s*HC$/,'').slice(0,3).toUpperCase();MK.short=(s,t)=>((s.short||[])[t]||MK.ab(t?s.away:s.home)).toUpperCase();
 // Numerär: vem har powerplay (10-min räknas inte)
+// Numerär: utespelare = max(3, 5 − aktiva räknande utvisningar). Används av tv, jumbotron och kontroll (mål-regeln).
 MK.strength=s=>{const a=[0,1].map(t=>MK.activePens(s,t).filter(p=>MK.penLeft(s,p,t)>0));const n=a.map(x=>x.length);
-  if(!n[0]&&!n[1])return null;const txt=(5-n[0])+' mot '+(5-n[1]);if(n[0]===n[1])return{pp:null,txt:(5-n[0])+' mot '+(5-n[1])};
-  const pp=n[0]<n[1]?0:1,left=Math.min(...a[1-pp].map(p=>MK.penLeft(s,p,1-pp)));return{pp,txt:(5-n[pp])+' mot '+(5-n[1-pp]),left}};
+  if(!n[0]&&!n[1])return null;const k=n.map(x=>Math.max(3,5-x));
+  if(k[0]===k[1])return{pp:null,k,txt:k[0]<5?k[0]+' mot '+k[1]:''};
+  const pp=k[0]>k[1]?0:1,left=Math.min(...a[1-pp].map(p=>MK.penLeft(s,p,1-pp)));return{pp,k,txt:k[pp]+' mot '+k[1-pp],left}};

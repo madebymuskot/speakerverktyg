@@ -12,6 +12,12 @@ main{padding:10px 12px}h2{color:#fff;font-size:17px;margin:14px 0 6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px}
 .c{aspect-ratio:1;border-radius:50%;border:3px solid #555;background:#151515;color:#fff;font-size:24px;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .c small{font-size:9px;font-weight:400;color:#aaa;max-width:90%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/*farg*/.kR{--tc:#E0393E;--tt:#fff}.kY{--tc:#FFD100;--tt:#000}
+nav button.kR,nav button.kY{border-top:4px solid var(--tc)}nav button.on.kR,nav button.on.kY{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 22%,#222)}
+main.kR .c.on,main.kY .c.on{background:var(--tc);border-color:var(--tc);color:var(--tt)}main.kR .c.on small{color:#fdd}main.kY .c.on small{color:#222}
+main.kR .big,main.kY .big{border-color:var(--tc)}main.kR h2,main.kY h2{border-left:5px solid var(--tc);padding-left:8px}
+td.kR,td.kY{border-left:4px solid var(--tc)}.tl{color:#999;font-weight:800}td.kR .tl,td.kY .tl{color:var(--tc)}
+@media print{.tl{color:#000!important}}
 .c.on{background:#FFB000;border-color:#FFB000;color:#000}.c.on small{color:#222}
 #cnt{font-size:18px;font-weight:800}#cnt.warn{color:#FF4136}
 .oi{color:#FFB000;font-weight:800}.sc{color:#FFB000;font-weight:900;font-size:22px;margin-right:6px;font-variant-numeric:tabular-nums}
@@ -52,21 +58,22 @@ function del(id){if(confirm('Ta bort raden?')){P.log=P.log.filter(e=>e.id!==id);
 function edit(id){const e=P.log.find(e=>e.id===id);if(!e)return;const v=prompt('Spelad tid (M:SS, t.ex. 1234 = 12:34)',e.sp);if(v==null)return;const d=v.replace(/\D/g,'').slice(-4);if(d)e.sp=d.length<=2?'0:'+d.padStart(2,'0'):d.slice(0,-2)+':'+d.slice(-2);
  const h=prompt('Hemma på isen (nr med mellanslag)',e.h.join(' '));if(h!=null)e.h=h.split(/[\s,]+/).filter(Boolean);const b=prompt('Borta på isen',e.b.join(' '));if(b!=null)e.b=b.split(/[\s,]+/).filter(Boolean);sv();render()}
 const nm=(t,n)=>{const p=roster(t).find(p=>p.no==n);return n+'.'+(p&&p.name?' '+p.name:'')};
-const plist=(t,a)=>a.length?`<small style="color:#999">${esc(team(t))}</small>`+a.map(n=>`<div>${esc(nm(t,n))}</div>`).join(''):'<small style="color:#999">'+esc(team(t))+'</small><div>–</div>';
+const plist=(t,a)=>a.length?`<small class="tl">${esc(team(t))}</small>`+a.map(n=>`<div>${esc(nm(t,n))}</div>`).join(''):'<small class="tl">'+esc(team(t))+'</small><div>–</div>';
 const score=()=>{const g=[0,0],m={};P.log.forEach(e=>{if(e.type==='Mål'&&(e.t===0||e.t===1)){g[e.t]++;m[e.id]=g[0]+'–'+g[1]}});return m};
 function csv(){const SC=score();const q=x=>'"'+String(x).replace(/"/g,'""')+'"';const rows=[['Händelse','Ställning','Lag','Period','Spelat','Kvar','Klockslag','Hemma på isen','Borta på isen']].concat(P.log.map(e=>[e.type,SC[e.id]||'',e.team,e.per,e.sp,e.tid,e.ts,e.h.map(n=>nm(0,n)).join(', '),e.b.map(n=>nm(1,n)).join(', ')]));
  const b=new Blob(['\ufeff'+rows.map(r=>r.map(q).join(';')).join('\r\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='paisen-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
 function clr(){if(confirm('Rensa hela protokollet?')){P.log=[];sv();render()}}
 function circ(t,p){return `<div class="c${P.on[t].includes(p.no)?' on':''}" onclick="tog(${t},'${p.no}')">${esc(p.no)}<small>${esc((p.name||'').split(' ').slice(-1)[0])}</small></div>`}
-function render(){[0,1,2].forEach(i=>$('tb'+i).classList.toggle('on',P.tab===i));$('tb0').textContent=team(0);$('tb1').textContent=team(1);$('hM').textContent=team(0)+' – '+team(1);
- const m=$('m'),t=P.tab;
+function kc(t){const i=[0,1].find(x=>/pite/i.test(team(x)));return (i==null?0:i)===t?'kR':'kY'}
+function render(){[0,1].forEach(i=>{const b=$('tb'+i);b.classList.remove('kR','kY');b.classList.add(kc(i))});[0,1,2].forEach(i=>$('tb'+i).classList.toggle('on',P.tab===i));$('tb0').textContent=team(0);$('tb1').textContent=team(1);$('hM').textContent=team(0)+' – '+team(1);
+ const m=$('m'),t=P.tab;m.className=t<2?kc(t):'';
  if(t<2){const r=roster(t),on=P.on[t],g=on.filter(n=>isG(t,n)).length,warn=on.length>6||g>1;
   const grp=[['Målvakter',r.filter(p=>p.pos==='M')],['Backar',r.filter(p=>p.pos==='B')],['Forwards',r.filter(p=>p.pos==='F')],['Övriga',r.filter(p=>!['M','B','F'].includes(p.pos))]].filter(x=>x[1].length);
   m.innerHTML=`<div class="bar"><button class="btn big" onclick="log('Mål',${t})">Mål ${esc(team(t))}</button><button class="btn" onclick="log('Händelse',null)">Händelse</button><span id="cnt" class="${warn?'warn':''}">På isen: <span class="${warn?'':'oi'}">${on.length}</span>${warn?' – för många!':''}</span></div>
   <div class="bar"><button class="sm" onclick="femma(${t})">Byt femma (behåll MV)</button><button class="sm rd" onclick="P.on[${t}]=[];sv();render()">Töm isen</button></div>
   ${grp.map(([h,l])=>`<h2>${h}</h2><div class="grid">${l.map(p=>circ(t,p)).join('')}</div>`).join('')||'<p style="color:#999">Ingen laglista från matchklockan – lägg till nummer nedan.</p>'}
   <h2>Lägg till nummer</h2><div class="bar"><input id="add${t}" inputmode="numeric" maxlength="2" placeholder="Nr" onkeydown="if(event.key==='Enter')addNo(${t})"><button class="sm" onclick="addNo(${t})">Lägg till</button>${P.extra[t].map(n=>`<button class="sm" onclick="rmNo(${t},'${n}')">${esc(n)} ✕</button>`).join('')}</div>`}
- else{const SC=score();m.innerHTML=`<h2>Protokoll</h2><table><tr><th>Händelse</th><th>Per</th><th>Spelat</th><th>På isen</th><th></th><th class="np"></th></tr>${P.log.slice().reverse().map(e=>`<tr><td>${SC[e.id]?`<span class="sc">${SC[e.id]}</span> `:''}<b>${esc(e.type)}</b> ${esc(e.team)}${e.auto?' <small style="color:#999">(klocka)</small>':''}</td><td>${esc(e.per)}</td><td class="oi">${esc(e.sp)}</td><td>${plist(0,e.h)}</td><td>${plist(1,e.b)}</td><td class="np"><button onclick="edit(${e.id})">Ändra</button><button onclick="del(${e.id})">✕</button></td></tr>`).join('')||'<tr><td colspan=6 style="color:#999">Inga händelser ännu</td></tr>'}</table>
+ else{const SC=score();m.innerHTML=`<h2>Protokoll</h2><table><tr><th>Händelse</th><th>Per</th><th>Spelat</th><th>På isen</th><th></th><th class="np"></th></tr>${P.log.slice().reverse().map(e=>`<tr><td>${SC[e.id]?`<span class="sc">${SC[e.id]}</span> `:''}<b>${esc(e.type)}</b> ${esc(e.team)}${e.auto?' <small style="color:#999">(klocka)</small>':''}</td><td>${esc(e.per)}</td><td class="oi">${esc(e.sp)}</td><td class="${kc(0)}">${plist(0,e.h)}</td><td class="${kc(1)}">${plist(1,e.b)}</td><td class="np"><button onclick="edit(${e.id})">Ändra</button><button onclick="del(${e.id})">✕</button></td></tr>`).join('')||'<tr><td colspan=6 style="color:#999">Inga händelser ännu</td></tr>'}</table>
  <div class="bar" style="margin-top:14px"><button class="sm" onclick="csv()">Ladda ner CSV</button><button class="sm" onclick="print()">Skriv ut</button><button class="sm rd" onclick="clr()">Rensa protokoll</button></div>`}}
 /* Auto-logg: när matchklockan registrerar ett mål loggas det om inget manuellt Mål för laget gjorts senaste 30 s */
 let rk='';function upd(){if(!S||!S.goals)return;const g=S.goals;if(!P.g){P.g=[...g];sv()}

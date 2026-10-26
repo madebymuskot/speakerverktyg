@@ -133,7 +133,7 @@ ORD.forEach((id,n)=>{if(id.startsWith('pt'))return;const el=$(id),tm=+(id[0]=='p
 
 /* ---- period, tid, protokoll ---- */
 const PL=['1','2','3','OT'];let PER='1';const TG=D.teams.map(()=>''),TP=D.teams.map(()=>'');
-const fmtT=v=>{v=v.replace(/\D/g,'').slice(0,4);return v.length>2?v.slice(0,v.length-2)+':'+v.slice(-2):v};
+const fmtT=v=>{if(/^\d{0,2}:\d{0,2}$/.test(v))return v;v=v.replace(/\D/g,'').slice(0,4);return v.length>2?v.slice(0,v.length-2)+':'+v.slice(-2):v};
 const tsec=t=>{t=String(t||'').replace(/[^0-9:]/g,'');if(!t)return 9999;let m=/^(\d+):(\d{1,2})$/.exec(t);if(m)return +m[1]*60+ +m[2];t=t.replace(/:/g,'');if(t.length<=2)return +t*60;return +t.slice(0,-2)*60+ +t.slice(-2)};
 document.querySelectorAll('.per').forEach(d=>PL.forEach(p=>{const b=document.createElement('button');b.textContent=p;b.dataset.p=p;b.tabIndex=-1;b.onclick=()=>{PER=p;trender()};d.appendChild(b)}));
 function trender(){document.querySelectorAll('.per button').forEach(b=>b.classList.toggle('on',b.dataset.p==PER));$('gt').value=TG[T];D.teams.forEach((t,i)=>{if($('pt'+i))$('pt'+i).value=TP[i]});$('rgt').textContent=TG[T]?`Period ${PER} · ${TG[T]}`:''}
@@ -262,27 +262,28 @@ const SEEN='fullt_seen';const seen=()=>{try{return JSON.parse(localStorage.getIt
 const mark=k=>{const o=seen();o[k]=Date.now();for(const x in o)if(Date.now()-o[x]>12*3600e3)delete o[x];localStorage.setItem(SEEN,JSON.stringify(o))};
 const box=document.createElement('div');box.id='fullt';box.hidden=true;
 box.style.cssText='background:#FFB000;color:#000;border:4px solid #000;border-radius:14px;padding:16px 26px;font:800 34px system-ui,sans-serif;box-shadow:0 8px 40px #000c;text-align:center;min-width:420px';
-box.innerHTML='<div id="fulltT"></div><div id="fulltS" style="font-size:20px;font-weight:600;margin-top:4px"></div><div style="margin-top:10px;display:flex;gap:14px;justify-content:center;align-items:center;font-size:15px;font-weight:600"><button id="fulltOk" style="font-size:22px;font-weight:800;padding:6px 26px">OK</button></div>';
+box.innerHTML='<div id="fulltT"></div><div id="fulltN" style="font-size:110px;line-height:1;font-weight:900;font-variant-numeric:tabular-nums;margin:6px 0"></div><div id="fulltS" style="font-size:20px;font-weight:600;margin-top:4px"></div><div style="margin-top:10px;display:flex;gap:14px;justify-content:center;align-items:center;font-size:15px;font-weight:600"><button id="fulltOk" style="font-size:22px;font-weight:800;padding:6px 26px">OK</button></div>';
 let SP=document.getElementById('spop');if(!SP){SP=document.createElement('div');SP.id='spop';SP.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:center';document.body.appendChild(SP)}SP.appendChild(box);const $f=i=>document.getElementById(i);
 let cur=null;const close=()=>{if(cur)mark(cur.k);cur=null;box.hidden=true};$f('fulltOk').onclick=close;
 
 const tname=(s,t)=>{const n=(t?s.away:s.home)||'';try{const w=n.trim().split(/\s+/)[0].toLowerCase();const i=D.teams.findIndex(x=>x.name.trim().split(/\s+/)[0].toLowerCase()===w);if(i>=0)return{lab:NM(i),i}}catch(e){}return{lab:n.trim().split(/\s+/)[0]||(t?'Bortalaget':'Hemmalaget'),i:-1}};
 const pname=(i,nr)=>{try{const p=D.teams[i].players.find(x=>String(x.no)===String(nr));return p?' '+p.first+' '+p.last:''}catch(e){return''}};
+const cdn=l=>{const n=Math.max(1,Math.ceil(l/1000));$f('fulltT').textContent=cur.lab+(cur.restore?' fulltaligt om '+n+' s':' – #'+cur.who.split(' ')[0].slice(1)+' ut om '+n+' s');$f('fulltN').textContent=n};
 const tick=()=>{const s=S;if(!s||!s.clock||!s.pens||Date.now()-(s.v||0)>6*3600e3||!/^(P\d|OT)$/.test(s.period)){if(cur&&!cur.end)close();return}
  const e=s.clock.running?Date.now()-s.clock.startedAt:0;
  if(cur){const ps=s.pens[cur.t]||[],p=ps.find(x=>x.id===cur.id);let left=p?sim(ps,e).L.get(p.id):null;
   if(!p&&(s.dels||[]).includes(cur.t+':'+cur.id)){cur=null;box.hidden=true;return} // kryssad (✕) eller mål – försvinner i alla faser
   if(!cur.end){if(p&&p.coin){cur=null;box.hidden=true;return}
    if(!p&&cur.last>1000){cur=null;box.hidden=true;return} // borttagen tidigt (mål/radering)
-   if(p&&left>0){cur.last=left;$f('fulltS').textContent=cur.who;return}
-   cur.end=true;$f('fulltT').textContent=cur.restore?cur.lab+' fulltaligt!':cur.who.split(' ')[0]+' ut – '+cur.lab+' fortf. i numerärt underläge';$f('fulltS').textContent=cur.who;$f('fulltT').style.fontSize='52px';box.style.background='#2ecc40'}
+   if(p&&left>0){cur.last=left;cdn(left);$f('fulltS').textContent=cur.who;return}
+   cur.end=true;$f('fulltN').hidden=true;$f('fulltT').textContent=cur.restore?cur.lab+' fulltaligt!':cur.who.split(' ')[0]+' ut – '+cur.lab+' fortf. i numerärt underläge';$f('fulltS').textContent=cur.who;$f('fulltT').style.fontSize='52px';box.style.background='#2ecc40'}
   return}
  const sk=seen(),sid=s.gid||'x';
  for(const t of[0,1]){const ps=s.pens[t]||[];const r=sim(ps,e);for(const p of r.slot){const left=r.L.get(p.id);if(!(left>0&&left<=10000))continue;
    const k=sid+':'+t+':'+p.id+':'+p.nr;if(sk[k])continue;
    const after=sim(ps,e+left+1).slot.length,restore=after<r.slot.length;const tn=tname(s,t);
    cur={k,t,id:p.id,lab:tn.lab,who:'#'+p.nr+pname(tn.i,p.nr),last:left,end:false,restore};$f('fulltT').style.fontSize='';mark(k);
-   $f('fulltT').textContent=tn.lab+(restore?' fulltaligt om 10 s':' – #'+p.nr+' ut om 10 s');$f('fulltS').textContent=cur.who;
+   $f('fulltN').hidden=false;cdn(left);$f('fulltS').textContent=cur.who;
    box.style.background='#FFB000';box.hidden=false;return}}};
 setInterval(tick,250);})();</script><script>/* Tid kvar-påminnelse: P1/P2 1 min, P3 2 min (räknar på kvarvarande periodtid, upp- eller nedräkning). Visas inte om tiden redigeras förbi. */
 (()=>{const KEY='matchklocka_state_v1';let S=null;const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();
@@ -308,4 +309,11 @@ const tick=()=>{const s=S;if(!s||!s.clock||Date.now()-(s.v||0)>6*3600e3||!PN[s.p
  if(cur&&!cur.now)$t('tleftS').textContent=Math.ceil((rem-T)/1000)+' s till '+(T/60000)+':00';
  prev={p:s.period,r:rem}};
 setInterval(tick,250);})();</script>
+<script>/* Tidsfält fylls från höger: 1→0:01, 123→1:23, 1234→12:34. Manuellt ':' fungerar fortfarande. */
+(()=>{const SEL='input.tt';document.addEventListener('input',e=>{const el=e.target;if(!el.matches||!el.matches(SEL))return;
+ if(el.maxLength>0&&el.maxLength<6)el.maxLength=6;const v=el.value,it=e.inputType||'';
+ if(e.data===':'){const m=v.slice(0,v.lastIndexOf(':')).replace(/\D/g,'');el.value=(parseInt(m,10)||0)+':';return}if((e.data||'').includes(':')||(it.startsWith('insert')&&/:\d?$/.test(v)&&!/^\d{1,2}:\d{2}\d/.test(v)))return;
+ const d=v.replace(/\D/g,'').replace(/^0+/,'').slice(-4);const n=el.value=d?(d.length<=2?'0:'+d.padStart(2,'0'):d.slice(0,-2)+':'+d.slice(-2)):'';
+ try{el.setSelectionRange(n.length,n.length)}catch(_){}},true);
+ document.querySelectorAll(SEL).forEach(el=>{if(el.maxLength>0&&el.maxLength<6)el.maxLength=6});})();</script>
 </body></html>

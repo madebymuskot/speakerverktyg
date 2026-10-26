@@ -95,7 +95,7 @@ MK.evSync=s=>{(s.ev||[]).forEach(e=>{if(e.typ!=='Utvisning'||e.del||e.end||!e.pi
   let at=null;((s.pgone||[])[e.t]||[]).forEach(g=>{if(e.pids.includes(g.p.id)&&g.per===s.period)at=at==null?g.at:Math.min(at,g.at)});
   e.end=MK.evT(s,at==null?MK.remain(s):at)})};
 MK.goal=(t,d)=>{MK.commit();const s=MK.state;if(d<0&&s.goals[t]<=0)return;s.goals[t]=Math.max(0,s.goals[t]+d);
-  if(d>0)MK.evAdd(s,{typ:'Mål',t});else{const g=(s.ev||[]).filter(e=>e.typ==='Mål'&&e.t===t&&!e.del).pop();if(g){g.del=1;g.delTs=Date.now()}}
+  if(d>0){if(!s.mid)s.mid=MK.newMid();MK.evAdd(s,{typ:'Mål',t,sH:s.goals[0],sA:s.goals[1],gid:s.gid||'',home:s.home,away:s.away,mid:s.mid})}else{const g=(s.ev||[]).filter(e=>e.typ==='Mål'&&e.t===t&&!e.del).pop();if(g){g.del=1;g.delTs=Date.now()}}
   if(d>0){const o=1-t,st=MK.strength(s);
     if(st&&st.pp===t){const two=MK.activePens(s,o).filter(p=>p.kind==='min').sort((a,b)=>a.left-b.left)[0];if(two){MK.noteDel(o,two.id);s.pens[o]=s.pens[o].filter(p=>p!==two)}}}
   MK.save()};
@@ -108,7 +108,8 @@ MK.addPen=(t,nr,type,coin)=>{MK.commit();const s=MK.state;let prev=null;const id
 MK.noteDel=(t,id)=>{const s=MK.state;s.dels=(s.dels||[]).concat(t+':'+id).slice(-30)};
 MK.delPen=(t,id)=>{MK.commit();MK.noteDel(t,id);{const s=MK.state,e=(s.ev||[]).find(e=>e.pids&&e.pids.includes(id)&&!e.del&&!e.end);if(e&&e.pids.every(i=>{const p=s.pens[t].find(q=>q.id===i);return !p||p.left>=MK.fullLen(p)})){e.del=1;e.delTs=Date.now()}}MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
 MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.now()+30000};MK.save()};
-MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.homeLogo=MK.state.homeLogo;s.awayLogo=MK.state.awayLogo;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
+MK.newMid=()=>'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+MK.reset=()=>{const s=MK.defaults();s.mid=MK.newMid();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.homeLogo=MK.state.homeLogo;s.awayLogo=MK.state.awayLogo;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs
 MK.view=function(render){MK.init();MK.on(render);const loop=()=>{render(MK.state);requestAnimationFrame(loop)};loop()};
 MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>!p.coin&&MK.penLeft(s,p,t)>0).map(p=>{const a=MK.penRunning(s,t,p)||p.kind==='gm';
@@ -133,10 +134,12 @@ MK.fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/
     if(!team)continue;const st=tr.querySelector('strong');if(st&&ws(st.textContent))role=ws(st.textContent);
     const isD=[...tr.querySelectorAll('td')].some(td=>!td.hasAttribute('colspan')&&!td.querySelector('strong'));
     for(const dv of tr.querySelectorAll('div.lineUpPlayer')){const mm=ws(dv.textContent).match(/^(\d+)\.\s*(.+?),\s*(.+)$/);if(!mm)continue;
-      if(team.players.some(p=>p.no===mm[1]))continue;team.players.push({no:mm[1],name:mm[3]+' '+mm[2],pos:role==='Goalies'?'M':/\d/.test(role||'')?(isD?'B':'F'):'–'})}}
+      if(team.players.some(p=>p.no===mm[1]))continue;team.players.push({no:mm[1],name:mm[3]+' '+mm[2],pos:role==='Goalies'?'M':/\d/.test(role||'')?(isD?'B':'F'):'–',ln:/\d/.test(role||'')?+role.replace(/\D/g,''):0})}}
   const tm=d.body.textContent.match(/(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/);teams.start=tm?{date:tm[1],time:tm[2].padStart(5,'0')}:null;
-  if(teams.length<2)throw Error('Ingen laguppställning hittades');teams.forEach(t=>t.players.sort((a,b)=>a.no-b.no));return teams};
-MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;const same=s.gid===gid,sw=s.swName||[];if(!same||s.home===sw[0]||!sw[0])s.home=t[0].name;if(!same||s.away===sw[1]||!sw[1])s.away=t[1].name;if(!same)s.short=['',''];s.gid=gid;s.swName=[t[0].name,t[1].name];s.rosters=[t[0].players,t[1].players];if(t.start&&(!same||!s.startTime||s.startTime===s.swStart)){s.startTime=t.start.time;s.startDate=t.start.date}if(t.start)s.swStart=t.start.time;MK.save();return t};
+  if(teams.length<2)throw Error('Ingen laguppställning hittades');teams.forEach(MK.luord);return teams};
+/* Officiell uppställningsordning: målvakter, femma 1–4, övriga (aldrig tröjnummer). Spegelvänd bortaordning vänds rätt. */
+MK.luord=t=>{const P=t.players,gk=P.filter(x=>x.pos==='M'),sk=P.filter(x=>x.pos!=='M'&&x.ln),ex=P.filter(x=>x.pos!=='M'&&!x.ln);if(sk.length>1&&sk[0].ln>sk[sk.length-1].ln){sk.reverse();gk.reverse()}t.players=gk.concat(sk,ex);return t};
+MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;const same=s.gid===gid;if(!same)s.mid=MK.newMid();const sw=s.swName||[];if(!same||s.home===sw[0]||!sw[0])s.home=t[0].name;if(!same||s.away===sw[1]||!sw[1])s.away=t[1].name;if(!same)s.short=['',''];s.gid=gid;s.swName=[t[0].name,t[1].name];s.rosters=[t[0].players,t[1].players];if(t.start&&(!same||!s.startTime||s.startTime===s.swStart)){s.startTime=t.start.time;s.startDate=t.start.date}if(t.start)s.swStart=t.start.time;MK.save();return t};
 MK.pname2=(s,t,nr)=>{const p=((s.rosters||[])[t]||[]).find(p=>p.no==nr);return p?p.name:''};
 // Automatiskt matchflöde: period slut -> paus (räknar ner) -> nästa period laddad, stoppad
 MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]?'OT':'SLUT',OT:'SLUT'})[s.period]||null;

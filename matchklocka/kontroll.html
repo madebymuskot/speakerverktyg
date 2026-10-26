@@ -109,13 +109,13 @@ const up=()=>{const s=MK.state,c=MK.current(s),e=$('elap');if(!e)return;let t=''
   else{const L=MK.periodLen(s.period),dn=MK.dir(s)!=='up'||s.period==='PAUS';
    if(v!=null&&v<=g.max){t=(dn?(s.period==='PAUS'?'gått ':'spelat '):'kvar ')+F(g.max-v)}
    else{const r=MK.remain(s);t=dn?(s.period==='PAUS'?'gått ':'spelat ')+F(L-r):'kvar '+F(r)}}}
- if(e.textContent!==t)e.textContent=t};setInterval(up,100);up()})()</script><script>/* Läktarstatistik (skott.html, nyckel skott_v1): visas skrivskyddat i parentes. Skrivs aldrig in i matchklockans state. */
+ if(e.textContent!==t)e.textContent=t};setInterval(up,100);up()})()</script><script>/* Läktarstatistik (skott.html, nyckel skott_v1): visas skrivskyddat, liten grå siffra. Skrivs aldrig in i matchklockans state. */
 (()=>{const g=()=>{try{return JSON.parse(localStorage.getItem('skott_v1'))}catch(e){return null}};
 const up=()=>{const X=g(),s=typeof MK!=='undefined'&&MK.state;const d=X&&X.d,per=s&&s.period;let has=false,c=[0,0],t=[0,0];
  if(d){for(const k in d){const v=(d[k]&&d[k].sog)||[0,0];t[0]+=v[0];t[1]+=v[1]}has=t[0]+t[1]>0;if(d[per])c=d[per].sog}
  [0,1].forEach(i=>{const p=document.getElementById('sgp'+i),q=document.getElementById('sgt'+i);
-  if(p){const x=has?' ('+c[i]+')':'';if(p.textContent!==x)p.textContent=x;p.title='Läktarens SOG denna period'}
-  if(q){const x=has?' ('+t[i]+')':'';if(q.textContent!==x)q.textContent=x}})};
+  if(p){const x=has?String(c[i]):'';if(p.textContent!==x)p.textContent=x;p.title='Läktarens SOG denna period'}
+})};
 addEventListener('storage',e=>{if(e.key==='skott_v1')up()});setInterval(up,500);up()})();</script>
-<style>.sg{color:#888;font-size:13px;font-weight:400;margin-left:3px;vertical-align:middle}</style>
+<style>.sg{color:#888;font-size:13px;font-weight:400;margin-left:6px;vertical-align:middle}</style>
 </body></html>

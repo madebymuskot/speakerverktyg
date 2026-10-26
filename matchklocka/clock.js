@@ -10,10 +10,10 @@ MK.LocalTransport={ // BroadcastChannel + localStorage (samma dator)
 };
 // Exempel på framtida transport: {init(onRemote){...ws.onmessage...}, load(){return null}, publish(s){ws.send(JSON.stringify(s))}}
 MK.defaults=()=>({v:0,home:'Piteå HC',away:'Motståndare',goals:[0,0],shots:[0,0],period:'P1',
-  len:{P:20,PAUS:15,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
+  len:{P:20,PAUS:18,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
 MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s=null;
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
-  MK.state=Object.assign(MK.defaults(),s||{});MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};
+  MK.state=Object.assign(MK.defaults(),s||{});if(!MK.state.len.v18){if(MK.state.len.PAUS===15)MK.state.len.PAUS=18;MK.state.len.v18=1}MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};
 MK.on=f=>MK.listeners.push(f);MK.emit=()=>MK.listeners.forEach(f=>f(MK.state));
 MK.save=function(){MK.state.v=Date.now();MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
 // Tidsberäkning (Date.now-baserad, ingen intervalldrift)
@@ -55,14 +55,14 @@ MK.stop=()=>{const s=MK.state;if(!s.clock.running)return;MK.commit();s.clock.run
 MK.toggle=()=>MK.state.clock.running?MK.stop():MK.start();
 MK.adjust=ms=>{MK.commit();const s=MK.state,max=MK.periodLen(s.period);s.clock.remain=Math.min(max,Math.max(0,s.clock.remain+ms));MK.save()};
 MK.setTime=ms=>{MK.commit();MK.state.clock.remain=Math.max(0,ms);MK.save()};
-MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?(s.next==='OT'&&l.OTP!=null?l.OTP:l.PAUS):p==='OT'?l.OT:l.P)*60000};
+MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT:l.P)*60000};
 // Förinställningar (min). Källor: SIF TB 2026/27 §1:6 (3x20, periodpaus 18 förbundsserie / 15 distrikt-region), §5:7 D (OT max 5 min, 3+1),
 // SIF SB 2026/27 (U18/U19/U20 SM-slutspel: OT max 10 min, paus före OT max 3), IIHF R77.2 (paus 15), R84.1 (OT 5, paus 3).
-// OTP utelämnad = paus före OT ej fastställd i källan -> används vanlig paus (konfigurerbart).
+// Paus före OT: domarstyrd (Daniels beslut) – öppen paus som räknar upp, avslutas med Avbryt.
 MK.PRESETS={'Förbundsserie, t.ex. Hockeyettan / U18 Nationell grundserie (TB)':{P:20,PAUS:18,OT:5},
-  'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10,OTP:3},'Distrikt/region (TB, om ej annat i SB)':{P:20,PAUS:15,OT:5},'IIHF (regelboken)':{P:20,PAUS:15,OT:5,OTP:3}};
-MK.preset=k=>{const l=MK.state.len,v=MK.PRESETS[k];if(!v)return;delete l.OTP;Object.assign(l,v);MK.save()};
-MK.setPeriod=p=>{MK.commit();const s=MK.state;s.clock.running=false;s.period=p;s.next=null;s.clock.remain=p==='SLUT'?0:MK.periodLen(p);MK.save()};
+  'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10},'Distrikt/region (TB, om ej annat i SB)':{P:20,PAUS:15,OT:5},'IIHF (regelboken)':{P:20,PAUS:15,OT:5}};
+MK.preset=k=>{const l=MK.state.len,v=MK.PRESETS[k];if(!v)return;Object.assign(l,v);MK.save()};
+MK.setPeriod=p=>{MK.commit();const s=MK.state;s.openSince=null;s.clock.running=false;s.period=p;s.next=null;s.clock.remain=p==='SLUT'?0:MK.periodLen(p);MK.save()};
 // Mål (R16.2/R17.2): om det insläppande laget är i numerärt underläge (R16.2 "short-handed") avslutas det räknande
 // mindre straffet med minst tid kvar. 5 min (R20.2), 10 min (R22) och samtidiga (R19) avslutas aldrig av mål.
 // Dubbel 2+2: bara pågående del avslutas (andra delen startar då direkt). 2+10: 10:an startar direkt (R22.3).
@@ -119,7 +119,8 @@ MK.autoTick=function(){const s=MK.state;
   if(s.period==='PAUS'){MK.advance();return}
   MK.stop();const n=MK.nextOf(s);if(!n)return;
   if(n==='SLUT'){s.period='SLUT';s.next=null;s.clock.remain=0;MK.save();return}
-  s.period='PAUS';s.next=n;s.clock.remain=MK.periodLen('PAUS');s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
+  if(n==='OT'){s.period='PAUS';s.next='OT';s.clock.remain=0;s.clock.running=false;s.openSince=Date.now();MK.save();return}
+  s.period='PAUS';s.next=n;s.openSince=null;s.clock.remain=MK.periodLen('PAUS');s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
 MK.nextLabel=s=>s.period==='PAUS'&&s.next?'Nästa: '+s.next:'';
 MK.ab=n=>n.replace(/\s*HC$/,'').slice(0,3).toUpperCase();MK.short=(s,t)=>((s.short||[])[t]||MK.ab(t?s.away:s.home)).toUpperCase();
 // Numerär: vem har powerplay (10-min räknas inte)
@@ -128,3 +129,8 @@ MK.strength=s=>{const a=[0,1].map(t=>MK.activePens(s,t).filter(p=>MK.penLeft(s,p
   if(!n[0]&&!n[1])return null;const k=n.map(x=>Math.max(3,5-x));
   if(k[0]===k[1])return{pp:null,k,txt:k[0]<5?k[0]+' mot '+k[1]:''};
   const pp=k[0]>k[1]?0:1,left=Math.min(...a[1-pp].map(p=>MK.penLeft(s,p,1-pp)));return{pp,k,txt:k[pp]+' mot '+k[1-pp],left}};
+
+// Öppen paus före OT (domarstyrd): räknar upp tills Avbryt
+MK.openPause=s=>s.period==='PAUS'&&s.next==='OT'&&!!s.openSince;
+{const f=MK.fmtShown;MK.fmtShown=s=>MK.openPause(s)?MK.fmtUp(Date.now()-s.openSince):f(s)}
+MK.pauseText=s=>MK.openPause(s)?'Paus – väntar på domare':'';

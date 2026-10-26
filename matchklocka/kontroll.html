@@ -16,7 +16,7 @@ button.on{background:#AF2E32;border-color:#fff}input{font-size:18px;padding:6px;
 <div class="box" id="t0"></div><div class="box" id="t1"></div>
 <div class="box full"><h2>Match (swehockey)</h2>Matchnummer <input id="gid" style="width:120px" placeholder="1116151"> <button id="gidb">Hämta lag</button> <span id="gmsg" style="color:#bbb"></span></div>
 <div class="box full" id="next" style="text-align:center;font-size:28px;font-weight:900;color:#FFB000"></div>
-<div class="box full"><h2>Inställningar</h2>Förinställning <select id="pre" onchange="this.value&&MK.preset(this.value);this.value=''"><option value="">– välj –</option></select> · Periodlängd <input id="lP" type="number" step="any"> min · Paus <input id="lPAUS" type="number" step="any"> min · OT <input id="lOT" type="number" step="any"> min · Paus före OT <input id="lOTP" type="number" step="any" placeholder="=paus"> min · Powerbreak: längd <input id="lPB" type="number" step="any"> s · signal efter <input id="lPBS" type="number" step="any"> s
+<div class="box full"><h2>Inställningar</h2>Förinställning <select id="pre" onchange="this.value&&MK.preset(this.value);this.value=''"><option value="">– välj –</option></select> · Periodlängd <input id="lP" type="number" step="any"> min · Paus <input id="lPAUS" type="number" step="any"> min · OT <input id="lOT" type="number" step="any"> min · Powerbreak: längd <input id="lPB" type="number" step="any"> s · signal efter <input id="lPBS" type="number" step="any"> s
 <button id="rst">Nollställ match</button></div>
 <div class="full" style="opacity:.6;font-size:13px;color:#bbb">Manuell override – period: <span id="per"></span> (normalt sköts perioder/paus automatiskt) · Klockan räknar: <button id="dn">NER</button><button id="up">UPP</button></div></main><script src="clock.js"></script><script>
 const $=i=>document.getElementById(i),s0=MK.init();
@@ -35,10 +35,10 @@ function pens(t){const s=MK.state;$('pl'+t).innerHTML=s.pens[t].map(p=>`<div cla
 let sig='';function render(){const s=MK.state,k=JSON.stringify([s.short,s.swName,s.gid,(s.rosters||[]).length,s.home,s.away,s.goals,s.shots,s.pens.map(x=>x.length)]);
  if(k!==sig&&!document.activeElement.matches('input')){sig=k;team(0);team(1)}
  $('hM').textContent=s.home+' – '+s.away;$('to0').textContent=s.home;$('to1').textContent=s.away;$('clk').textContent=MK.fmtShown(s);$('clk').className='tnum'+(s.clock.running?' run':'');
- $('go').textContent=s.clock.running?'STOPP':'START';$('go').className=s.clock.running?'stop':'start';$('st').textContent=MK.pname(s.period)+(s.clock.running?' · klockan går':' · stoppad');
+ $('go').textContent=s.clock.running?'STOPP':'START';$('go').className=s.clock.running?'stop':'start';$('st').textContent=MK.openPause(s)?'Paus – väntar på domare (räknar upp)':MK.pname(s.period)+(s.clock.running?' · klockan går':' · stoppad');
  document.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===s.period));$('dn').classList.toggle('on',MK.dir(s)==='down');$('up').classList.toggle('on',MK.dir(s)==='up');
  const o=MK.overlay(s);$('ov').textContent=o?o.k+' '+o.v:'';pens(0);pens(1);
- for(const x of['P','PAUS','OT','OTP','PB','PBS'])if(document.activeElement!==$('l'+x))$('l'+x).value=s.len[x]??({PB:70,PBS:60,OTP:''})[x];
+ for(const x of['P','PAUS','OT','PB','PBS'])if(document.activeElement!==$('l'+x))$('l'+x).value=s.len[x]??({PB:70,PBS:60})[x];
  if(s.pb&&!s.pb.sig&&Date.now()>=s.pb.sigAt&&MK.cd(s.pb)>0){s.pb.sig=true;MK.save();BZ.buzz(1500)}MK.autoTick();{const c=MK.current(MK.state);$('ovx').disabled=!c;const ss=MK.state,sub=c==='paus'?(ss.next?'Paus – går till '+ss.next:'Paus'):c==='powerbreak'?'Powerbreak – tillbaka till matchen':c==='timeout'?'Timeout '+(ss.timeout.team?ss.away:ss.home):'&nbsp;';$('ovx').innerHTML='AVBRYT<small>'+sub+'</small>'}const nl=MK.nextLabel(s)||(s.period==='SLUT'?'Matchen är slut':(!s.clock.running&&s.clock.remain===MK.periodLen(s.period)&&s.period!=='PAUS'?MK.pshort(s.period)+' redo – tryck mellanslag':''));$('next').textContent=nl;$('next').hidden=!nl;}
 setInterval(()=>{if(!document.activeElement.matches('#pl0 input,#pl1 input'))render();else{$('clk').textContent=MK.fmtShown(MK.state)}},50);MK.on(()=>{sig='';render()});
 $('go').onclick=MK.toggle;const ptime=v=>{const m=String(v).trim().replace('.',',').match(/^(?:(\d+):)?(\d+)(?:,(\d))?$/);return m?((+(m[1]||0))*60+ +m[2])*1000+(+(m[3]||0))*100:null};
@@ -48,7 +48,7 @@ const edSave=()=>{const v=ptime($('tset').value);if(v==null){$('tset').style.bor
 $('tsave').onclick=edSave;$('tcancel').onclick=edClose;$('tset').onkeydown=e=>{if(e.key==='Enter')edSave();else if(e.key==='Escape')edClose();e.stopPropagation()};
 document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>MK.setPeriod(b.dataset.p));
 $('dn').onclick=()=>MK.setDir('down');$('up').onclick=()=>MK.setDir('up');$('pb').onclick=()=>MK.powerbreak(true);$('ovx').onclick=()=>MK.advance();
-for(const x of['P','PAUS','OT','OTP','PB','PBS'])$('l'+x).onchange=e=>{const v=e.target.value;if(x==='OTP'&&v==='')delete MK.state.len.OTP;else MK.state.len[x]=+v;MK.save()};
+for(const x of['P','PAUS','OT','PB','PBS'])$('l'+x).onchange=e=>{MK.state.len[x]=+e.target.value;MK.save()};
 $('pre').innerHTML+=Object.keys(MK.PRESETS).map(k=>`<option>${k}</option>`).join('');
 $('gid').value=MK.state.gid||'1112958';$('gidb').onclick=async()=>{$('gmsg').textContent='Hämtar…';try{const t=await MK.loadGame($('gid').value.trim());$('gmsg').textContent=`OK: ${t[0].name} (${t[0].players.length}) – ${t[1].name} (${t[1].players.length})`;sig=''}catch(e){$('gmsg').textContent='Misslyckades ('+e.message+') – fyll i lagnamn/nummer manuellt'}};
 $('rst').onclick=()=>confirm('Nollställa matchen?')&&MK.reset();

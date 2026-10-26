@@ -92,3 +92,7 @@ MK.autoTick=function(){const s=MK.state;
   s.period='PAUS';s.next=n;s.clock.remain=MK.periodLen('PAUS');s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
 MK.nextLabel=s=>s.period==='PAUS'&&s.next?'Nästa: '+s.next:'';
 MK.ab=n=>n.replace(/\s*HC$/,'').slice(0,3).toUpperCase();MK.short=(s,t)=>((s.short||[])[t]||MK.ab(t?s.away:s.home)).toUpperCase();
+// Numerär: vem har powerplay (10-min räknas inte)
+MK.strength=s=>{const a=[0,1].map(t=>MK.activePens(s,t).filter(p=>MK.penLeft(s,p,t)>0));const n=a.map(x=>x.length);
+  if(!n[0]&&!n[1])return null;const txt=(5-n[0])+' mot '+(5-n[1]);if(n[0]===n[1])return{pp:null,txt:(5-n[0])+' mot '+(5-n[1])};
+  const pp=n[0]<n[1]?0:1,left=Math.min(...a[1-pp].map(p=>MK.penLeft(s,p,1-pp)));return{pp,txt:(5-n[pp])+' mot '+(5-n[1-pp]),left}};

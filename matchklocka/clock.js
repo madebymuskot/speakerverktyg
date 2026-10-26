@@ -29,8 +29,8 @@ MK.remain=s=>Math.max(0,s.clock.remain-MK.elapsed(s));
 // 10 min (R22.1/22.3): ersättare direkt, ingen numerärändring, egen tid. 'after' = startar när föregående del är avtjänad
 //  (andra delen av 2+2 R18.1; 10:an i 2+10 R22.3; GM i 5+20 R20.4/R23).
 MK.counts=p=>(p.kind==='min'||p.kind==='maj')&&!p.coin;
-MK.penSim=(s,t,e)=>{const L=new Map(s.pens[t].map(p=>[p.id,p.left])),gone=new Set();let run=[],slot=[];
-  for(let g=0;g<50;g++){const elig=s.pens[t].filter(p=>!gone.has(p.id)&&(!p.after||gone.has(p.after)||!s.pens[t].some(q=>q.id===p.after)));
+MK.penSim=(s,t,e)=>{const L=new Map(s.pens[t].map(p=>[p.id,p.left])),gone=new Set(s.pens[t].filter(p=>p.done).map(p=>p.id));let run=[],slot=[];
+  for(let g=0;g<50;g++){const elig=s.pens[t].filter(p=>!p.done&&!gone.has(p.id)&&(!p.after||gone.has(p.after)||!s.pens[t].some(q=>q.id===p.after)));
     slot=elig.filter(MK.counts).slice(0,2);run=slot.concat(elig.filter(p=>!MK.counts(p)&&p.kind!=='gm'));
     if(e<=0||!run.length)break;const dt=Math.min(e,...run.map(p=>L.get(p.id)));
     run.forEach(p=>{L.set(p.id,L.get(p.id)-dt);if(L.get(p.id)<=0)gone.add(p.id)});e-=dt}
@@ -48,10 +48,10 @@ MK.pname=p=>({P1:'1:a perioden',P2:'2:a perioden',P3:'3:e perioden',OT:'Förlän
 MK.pshort=p=>({P1:'P1',P2:'P2',P3:'P3',OT:'OT',PAUS:'PAUS',SLUT:'SLUT'})[p]||p;
 // Mutationer (används av kontroll)
 MK.commit=function(){const s=MK.state,e0=MK.elapsed(s),e=MK.penEl(s);if(!s.clock.running)return;
-  for(const t of[0,1]){const r=MK.penSim(s,t,e);s.pens[t].forEach(p=>p.left=r.L.get(p.id));s.pens[t]=s.pens[t].filter(p=>!r.gone.has(p.id))}
+  for(const t of[0,1]){const r=MK.penSim(s,t,e);s.pens[t].forEach(p=>p.left=r.L.get(p.id));s.pens[t].forEach(p=>{if(p.coin&&r.gone.has(p.id)){p.left=0;p.done=true}});s.pens[t]=s.pens[t].filter(p=>p.done||!r.gone.has(p.id))}
   s.clock.remain=Math.max(0,s.clock.remain-e0);s.clock.startedAt=Date.now();};
 MK.start=()=>{const s=MK.state;if(s.clock.running||s.clock.remain<=0)return;s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
-MK.stop=()=>{const s=MK.state;if(!s.clock.running)return;MK.commit();s.clock.running=false;MK.save()};
+MK.stop=()=>{const s=MK.state;if(!s.clock.running)return;MK.commit();s.clock.running=false;s.lastStop={period:s.period,remain:s.clock.remain,len:MK.periodLen(s.period),at:Date.now()};MK.save()};
 MK.toggle=()=>MK.state.clock.running?MK.stop():MK.start();
 MK.adjust=ms=>{MK.commit();const s=MK.state,max=MK.periodLen(s.period);s.clock.remain=Math.min(max,Math.max(0,s.clock.remain+ms));MK.save()};
 MK.setTime=ms=>{MK.commit();MK.state.clock.remain=Math.max(0,ms);MK.save()};
@@ -80,7 +80,7 @@ MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.n
 MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs
 MK.view=function(render){MK.init();MK.on(render);const loop=()=>{render(MK.state);requestAnimationFrame(loop)};loop()};
-MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>MK.penLeft(s,p,t)>0).map(p=>{const a=MK.penRunning(s,t,p)||p.kind==='gm';
+MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>!p.coin&&MK.penLeft(s,p,t)>0).map(p=>{const a=MK.penRunning(s,t,p)||p.kind==='gm';
   return `<div class="${cls}${a?'':' q'}">#${p.nr} <b>${MK.penTxt(s,p,t)}</b></div>`}).join('');
 // Tillägg: räkna upp/ner, redigera utvisning, powerbreak
 MK.dir=s=>s.dir||'down';
@@ -89,7 +89,7 @@ MK.fmtShown=s=>MK.dir(s)==='up'&&s.period!=='PAUS'?MK.fmtUp(MK.shown(s)):MK.fmt(
 MK.fmtUp=ms=>{const sec=Math.floor(ms/1000);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 MK.setDir=d=>{MK.state.dir=d;MK.save()};
 MK.setShown=ms=>{const s=MK.state;MK.setTime(MK.dir(s)==='up'&&s.period!=='PAUS'?MK.periodLen(s.period)-ms:ms)};
-MK.editPen=(t,id,ms)=>{MK.commit();const p=MK.state.pens[t].find(p=>p.id===id);if(p)p.left=Math.max(0,ms);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.left>0||p.kind==='gm');MK.save()};
+MK.editPen=(t,id,ms)=>{MK.commit();const p=MK.state.pens[t].find(p=>p.id===id);if(p){p.left=Math.max(0,ms);if(p.coin)p.done=p.left<=0}MK.state.pens[t]=MK.state.pens[t].filter(p=>p.left>0||p.kind==='gm'||p.done);MK.save()};
 MK.powerbreak=on=>{if(on){MK.stop();const n=Date.now(),l=MK.state.len;MK.state.pb={start:n,endsAt:n+(l.PB||70)*1000,sigAt:n+(l.PBS??60)*1000,sig:false}}else MK.state.pb=null;MK.save()};
 MK.cd=x=>x?Math.max(0,x.endsAt-Date.now()):0;
 MK.overlay=s=>{const t=MK.cd(s.timeout),p=MK.cd(s.pb),f=MK.cd(s.pre);if(f>0){const w=MK.warm(s);return{k:'MATCHSTART OM',v:MK.fmtP(f),pre:1,w:w.txt,wph:w.ph}}
@@ -145,3 +145,8 @@ MK.preMode=s=>{const a=MK.startAtMs(s);return a&&a>Date.now()?'tid':'langd'};
 MK.preStart=mode=>{const s=MK.state;MK.stop();mode=mode||MK.preMode(s);const a=MK.startAtMs(s);
   s.pre=mode==='tid'&&a>Date.now()?{endsAt:a,mode:'tid'}:{endsAt:Date.now()+(s.len.PRE||60)*60000,mode:'langd'};MK.save()};
 MK.setStartTime=v=>{v=(v||'').trim().replace('.',':');MK.state.startTime=/^\d{1,2}:\d{2}$/.test(v)?v.padStart(5,'0'):'';MK.save()};
+
+// Kvittade (coin) utvisningar visas aldrig på outputs. När tiden är slut ligger de kvar som done tills
+// första avblåsning (klockan stoppad) -> varning på kontroll "Släpp ut", tas bort när operatören trycker OK.
+MK.releases=s=>s.clock.running?[]:[0,1].flatMap(t=>s.pens[t].filter(p=>p.done&&p.coin&&!s.pens[t].some(q=>q.after===p.id)).map(p=>({t,p})));
+MK.release=(t,id)=>MK.delPen(t,id);

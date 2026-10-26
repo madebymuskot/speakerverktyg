@@ -224,4 +224,13 @@ function skRender(){const el=$('skott');if(!el)return;const d=SKD,n=4,hd=['P1','
 function skFetch(){if(!D.gid){skRender();return}fetch('https://stats.swehockey.se/Game/Events/'+D.gid,{cache:'no-store'}).then(r=>r.ok?r.text():Promise.reject()).then(h=>{const r=skParse(h);if(r){SKD=r;const z=new Date();SKT=String(z.getHours()).padStart(2,'0')+':'+String(z.getMinutes()).padStart(2,'0')}skRender()}).catch(()=>skRender())}
 function skTick(){if(V=='R'&&!document.hidden)skFetch()}
 try{skRender();skFetch();setInterval(skTick,60000)}catch(e){}
-try{const _tt=D.u18?'Speaker U18':'Speaker A-lag';document.title=_tt;const _m=document.createElement('meta');_m.name='apple-mobile-web-app-title';_m.content=_tt;document.head.appendChild(_m)}catch(e){}</script><div style="text-align:center;font-size:11px;color:#777;padding:14px 0 10px;opacity:.8">© 2026 Daniel Elfström</div></body></html>
+try{const _tt=D.u18?'Speaker U18':'Speaker A-lag';document.title=_tt;const _m=document.createElement('meta');_m.name='apple-mobile-web-app-title';_m.content=_tt;document.head.appendChild(_m)}catch(e){}</script><div style="text-align:center;font-size:11px;color:#777;padding:14px 0 10px;opacity:.8">© 2026 Daniel Elfström</div><script>/* Matchklocka-koppling: föreslår speltid (förfluten tid i perioden) vid senaste klockstopp. No-op utan klocka. */
+(()=>{const MKP={P1:'1',P2:'2',P3:'3',OT:'OT'};
+const get=()=>{try{const s=JSON.parse(localStorage.getItem('matchklocka_state_v1'));if(!s||!s.clock||Date.now()-(s.v||0)>6*3600e3)return null;
+ let ls=s.lastStop;if(!s.clock.running&&MKP[s.period]){const l=s.len||{},len=(s.period==='OT'?l.OT||5:l.P||20)*60000;ls={period:s.period,remain:s.clock.remain,len}}
+ if(!ls||!MKP[ls.period])return null;const e=Math.max(0,Math.min(ls.len,ls.len-ls.remain)),sec=Math.floor(e/1000);
+ return{per:MKP[ls.period],t:String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}}catch(x){return null}};
+const fill=el=>{if(!el||el.value)return;const g=get();if(!g)return;if(typeof PER!=='undefined'&&PL.includes(g.per))PER=g.per;
+ el.value=g.t;el.dispatchEvent(new Event('input'));el.title='Förslag från matchklockan (senaste stopp) – kan ändras';el.select&&el.select();if(typeof trender==='function')trender()};
+document.addEventListener('focusin',e=>{const id=e.target&&e.target.id;if(id==='gt'||/^pt\d$/.test(id))fill(e.target)});
+})();</script></body></html>

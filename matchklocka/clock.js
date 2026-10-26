@@ -10,7 +10,7 @@ MK.LocalTransport={ // BroadcastChannel + localStorage (samma dator)
 };
 // Exempel på framtida transport: {init(onRemote){...ws.onmessage...}, load(){return null}, publish(s){ws.send(JSON.stringify(s))}}
 MK.defaults=()=>({v:0,home:'Piteå HC',away:'Motståndare',goals:[0,0],shots:[0,0],period:'P1',
-  len:{P:20,PAUS:18,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
+  len:{P:20,PAUS:18,PRE:60,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
 MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s=null;
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
   MK.state=Object.assign(MK.defaults(),s||{});if(!MK.state.len.v18){if(MK.state.len.PAUS===15)MK.state.len.PAUS=18;MK.state.len.v18=1}MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};
@@ -77,7 +77,7 @@ MK.addPen=(t,nr,type,coin)=>{MK.commit();const s=MK.state;let prev=null;type=Str
     if(prev){const i=s.pens[t].findIndex(q=>q.id===prev);s.pens[t].splice(i+1,0,p)}else s.pens[t].push(p);prev=p.id}MK.save()};
 MK.delPen=(t,id)=>{MK.commit();MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
 MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.now()+30000};MK.save()};
-MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
+MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs
 MK.view=function(render){MK.init();MK.on(render);const loop=()=>{render(MK.state);requestAnimationFrame(loop)};loop()};
 MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>MK.penLeft(s,p,t)>0).map(p=>{const a=MK.penRunning(s,t,p)||p.kind==='gm';
@@ -92,7 +92,7 @@ MK.setShown=ms=>{const s=MK.state;MK.setTime(MK.dir(s)==='up'&&s.period!=='PAUS'
 MK.editPen=(t,id,ms)=>{MK.commit();const p=MK.state.pens[t].find(p=>p.id===id);if(p)p.left=Math.max(0,ms);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.left>0||p.kind==='gm');MK.save()};
 MK.powerbreak=on=>{if(on){MK.stop();const n=Date.now(),l=MK.state.len;MK.state.pb={start:n,endsAt:n+(l.PB||70)*1000,sigAt:n+(l.PBS??60)*1000,sig:false}}else MK.state.pb=null;MK.save()};
 MK.cd=x=>x?Math.max(0,x.endsAt-Date.now()):0;
-MK.overlay=s=>{const t=MK.cd(s.timeout),p=MK.cd(s.pb);
+MK.overlay=s=>{const t=MK.cd(s.timeout),p=MK.cd(s.pb),f=MK.cd(s.pre);if(f>0)return{k:'MATCHSTART OM',v:MK.fmtP(f),pre:1};
   if(t>0)return{k:'TIMEOUT '+(s.timeout.team?s.away:s.home).toUpperCase(),v:MK.fmtP(t)};if(p>0)return{k:'POWERBREAK',v:MK.fmtP(p)};return null};
 // Swehockey (CORS *): lagnamn + laglistor från /Game/LineUps/<gid>
 MK.fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/LineUps/'+gid,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
@@ -103,17 +103,18 @@ MK.fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/
     const isD=[...tr.querySelectorAll('td')].some(td=>!td.hasAttribute('colspan')&&!td.querySelector('strong'));
     for(const dv of tr.querySelectorAll('div.lineUpPlayer')){const mm=ws(dv.textContent).match(/^(\d+)\.\s*(.+?),\s*(.+)$/);if(!mm)continue;
       if(team.players.some(p=>p.no===mm[1]))continue;team.players.push({no:mm[1],name:mm[3]+' '+mm[2],pos:role==='Goalies'?'M':/\d/.test(role||'')?(isD?'B':'F'):'–'})}}
+  const tm=d.body.textContent.match(/(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/);teams.start=tm?{date:tm[1],time:tm[2].padStart(5,'0')}:null;
   if(teams.length<2)throw Error('Ingen laguppställning hittades');teams.forEach(t=>t.players.sort((a,b)=>a.no-b.no));return teams};
-MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;const same=s.gid===gid,sw=s.swName||[];if(!same||s.home===sw[0]||!sw[0])s.home=t[0].name;if(!same||s.away===sw[1]||!sw[1])s.away=t[1].name;if(!same)s.short=['',''];s.gid=gid;s.swName=[t[0].name,t[1].name];s.rosters=[t[0].players,t[1].players];MK.save();return t};
+MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;const same=s.gid===gid,sw=s.swName||[];if(!same||s.home===sw[0]||!sw[0])s.home=t[0].name;if(!same||s.away===sw[1]||!sw[1])s.away=t[1].name;if(!same)s.short=['',''];s.gid=gid;s.swName=[t[0].name,t[1].name];s.rosters=[t[0].players,t[1].players];if(t.start&&(!same||!s.startTime||s.startTime===s.swStart)){s.startTime=t.start.time;s.startDate=t.start.date}if(t.start)s.swStart=t.start.time;MK.save();return t};
 MK.pname2=(s,t,nr)=>{const p=((s.rosters||[])[t]||[]).find(p=>p.no==nr);return p?p.name:''};
 // Automatiskt matchflöde: period slut -> paus (räknar ner) -> nästa period laddad, stoppad
 MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]?'OT':'SLUT',OT:'SLUT'})[s.period]||null;
 // "Nästa steg i tidslinjen" – används både av automatik (nedräkning når 0) och Avbryt-knappen
-MK.current=s=>MK.cd(s.timeout)>0?'timeout':MK.cd(s.pb)>0?'powerbreak':s.period==='PAUS'?'paus':null;
+MK.current=s=>MK.cd(s.pre)>0?'forematch':MK.cd(s.timeout)>0?'timeout':MK.cd(s.pb)>0?'powerbreak':s.period==='PAUS'?'paus':null;
 MK.advance=function(){const s=MK.state,c=MK.current(s);
-  if(c==='timeout'){s.timeout=null;MK.save()}else if(c==='powerbreak'){s.pb=null;MK.save()}
+  if(c==='forematch'){s.pre=null;MK.setPeriod('P1')}else if(c==='timeout'){s.timeout=null;MK.save()}else if(c==='powerbreak'){s.pb=null;MK.save()}
   else if(c==='paus'){MK.setPeriod(s.next||'P2')}};
-MK.autoTick=function(){const s=MK.state;
+MK.autoTick=function(){const s=MK.state;if(s.pre&&MK.cd(s.pre)<=0){s.pre=null;MK.setPeriod('P1');return}
   if((s.timeout&&MK.cd(s.timeout)<=0)){s.timeout=null;MK.save()}if(s.pb&&MK.cd(s.pb)<=0){s.pb=null;MK.save()}
   if(!s.clock.running||MK.remain(s)>0)return;
   if(s.period==='PAUS'){MK.advance();return}
@@ -134,3 +135,11 @@ MK.strength=s=>{const a=[0,1].map(t=>MK.activePens(s,t).filter(p=>MK.penLeft(s,p
 MK.openPause=s=>s.period==='PAUS'&&s.next==='OT'&&!!s.openSince;
 {const f=MK.fmtShown;MK.fmtShown=s=>MK.openPause(s)?MK.fmtUp(Date.now()-s.openSince):f(s)}
 MK.pauseText=s=>MK.openPause(s)?'Paus – väntar på domare':'';
+
+// Förmatch: nedräkning till matchstart (första steget i tidslinjen, före P1). Inga andra moment under nedräkningen.
+// (b) mot klockslag s.startTime (dagens datum) om det finns och ligger i framtiden, annars (a) vald längd len.PRE min.
+MK.startAtMs=s=>{if(!/^\d{1,2}:\d{2}$/.test(s.startTime||''))return null;const[h,m]=s.startTime.split(':').map(Number),d=new Date();d.setHours(h,m,0,0);return d.getTime()};
+MK.preMode=s=>{const a=MK.startAtMs(s);return a&&a>Date.now()?'tid':'langd'};
+MK.preStart=mode=>{const s=MK.state;MK.stop();mode=mode||MK.preMode(s);const a=MK.startAtMs(s);
+  s.pre=mode==='tid'&&a>Date.now()?{endsAt:a,mode:'tid'}:{endsAt:Date.now()+(s.len.PRE||60)*60000,mode:'langd'};MK.save()};
+MK.setStartTime=v=>{v=(v||'').trim().replace('.',':');MK.state.startTime=/^\d{1,2}:\d{2}$/.test(v)?v.padStart(5,'0'):'';MK.save()};

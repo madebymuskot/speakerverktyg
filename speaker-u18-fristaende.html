@@ -75,7 +75,7 @@ const S=D.teams.map(()=>({g:['','',''],p:['',''],t:['',''],y:''}));
 const NM=i=>D.teams[i].name.trim().split(/\s+/)[0];
 const TIMES=['2','2+2','5','5+20'];const TL={'2':'2 min','2+2':'2+2 min','5':'5 min','5+20':'5+20 min (game)'};
 (()=>{const hM=document.getElementById('hM'),hW=document.getElementById('hW');hM.textContent=D.teams.map((t,i)=>NM(i)).join(' – ');let w='';if(D.date){const x=new Date(D.date+'T12:00:00'),dn=['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'],mn=['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];w=dn[x.getDay()]+' '+x.getDate()+' '+mn[x.getMonth()]+' '+x.getFullYear()}const z=[w,D.time,D.arena].filter(Boolean);hW.textContent=z.join(' · ');})();
-$('t').innerHTML=`<span style="font-size:11px;color:#888;font-weight:400">Hämtad ${D.fetched}</span>`;document.title='Speaker – '+D.teams.map((t,i)=>NM(i)).join(' – ');
+$('t').innerHTML='';document.title='Speaker – '+D.teams.map((t,i)=>NM(i)).join(' – ');
 D.teams.forEach((t,i)=>{const b=document.createElement('button');b.textContent=NM(i);b.onclick=()=>setTeam(i);$('teams').appendChild(b)});
 document.querySelectorAll('.tm').forEach(d=>{TIMES.forEach(m=>{const b=document.createElement('button');b.textContent=TL[m];b.dataset.m=m;b.tabIndex=-1;b.onclick=()=>{const i=+d.dataset.i,q=S[i>>1];q.t[i%2]=q.t[i%2]===m?'':m;render()};d.appendChild(b)})});
 function look(v,tm=T){if(!v)return'';const p=D.teams[tm].players.find(p=>p.no==String(parseInt(v)));
@@ -272,7 +272,7 @@ const fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Ga
   const n=new Date(),p=x=>String(x).padStart(2,'0');
   return {id:String(gid),gid:String(gid),u18:D0.u18,title:teams[0].name+' – '+teams[1].name,date:tm?tm[1]:'',time:tm?tm[2].padStart(5,'0'):'',arena:'',refs:[],shots:[],teams:teams.slice(0,2),manual:1,fetched:n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+' '+p(n.getHours())+':'+p(n.getMinutes())+' (manuell)'}};
 const g=$('lmGid'),msg=$('lmMsg');g.value=D.gid||D.id||'';
-msg.textContent=D.manual?'Manuellt laddad match '+D.id+': '+D.teams.map(t=>t.name).join(' – '):'Automatisk match: '+D0.teams.map(t=>t.name).join(' – ')+' ('+(D0.gid||D0.id)+')';
+msg.textContent=(D.manual?'Manuellt laddad match '+D.id+': '+D.teams.map(t=>t.name).join(' – '):'Automatisk match: '+D0.teams.map(t=>t.name).join(' – ')+' ('+(D0.gid||D0.id)+')')+(D.fetched?' · Hämtad '+D.fetched:'')+(D.manual?' · källa: stats.swehockey.se (manuell)':' · källa: stats.swehockey.se');
 $('lmX').disabled=!D.manual;$('lmX').style.opacity=D.manual?1:.5;
 $('lmB').onclick=async()=>{const id=g.value.replace(/\D/g,'');if(!id){msg.textContent='Ange matchnummer';return}msg.textContent='Hämtar…';
   try{const o=await fetchLineup(id);localStorage.setItem(OVK,JSON.stringify(o));msg.textContent='OK: '+o.teams.map(t=>t.name+' ('+t.players.length+')').join(' – ')+' – laddar om…';setTimeout(()=>location.reload(),400)}

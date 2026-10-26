@@ -29,12 +29,12 @@ MK.remain=s=>Math.max(0,s.clock.remain-MK.elapsed(s));
 // 10 min (R22.1/22.3): ersättare direkt, ingen numerärändring, egen tid. 'after' = startar när föregående del är avtjänad
 //  (andra delen av 2+2 R18.1; 10:an i 2+10 R22.3; GM i 5+20 R20.4/R23).
 MK.counts=p=>(p.kind==='min'||p.kind==='maj')&&!p.coin;
-MK.penSim=(s,t,e)=>{const L=new Map(s.pens[t].map(p=>[p.id,p.left])),gone=new Set(s.pens[t].filter(p=>p.done).map(p=>p.id));let run=[],slot=[];
+MK.penSim=(s,t,e)=>{const L=new Map(s.pens[t].map(p=>[p.id,p.left])),gone=new Set(s.pens[t].filter(p=>p.done).map(p=>p.id));let run=[],slot=[],used=0;const G=new Map();
   for(let g=0;g<50;g++){const elig=s.pens[t].filter(p=>!p.done&&!gone.has(p.id)&&(!p.after||gone.has(p.after)||!s.pens[t].some(q=>q.id===p.after)));
     slot=elig.filter(MK.counts).slice(0,2);run=slot.concat(elig.filter(p=>!MK.counts(p)&&p.kind!=='gm'));
     if(e<=0||!run.length)break;const dt=Math.min(e,...run.map(p=>L.get(p.id)));
-    run.forEach(p=>{L.set(p.id,L.get(p.id)-dt);if(L.get(p.id)<=0)gone.add(p.id)});e-=dt}
-  return{L,gone,run,slot}};
+    used+=dt;run.forEach(p=>{L.set(p.id,L.get(p.id)-dt);if(L.get(p.id)<=0){gone.add(p.id);G.set(p.id,used)}});e-=dt}
+  return{L,gone,run,slot,G}};
 MK.penNow=(s,t)=>MK.penSim(s,t,MK.penEl(s));
 MK.activePens=(s,t)=>MK.penNow(s,t).slot; // räknande som avtjänas nu (max 2, R26.1)
 MK.penRunning=(s,t,p)=>MK.penNow(s,t).run.includes(p);
@@ -48,24 +48,31 @@ MK.pname=p=>({P1:'1:a perioden',P2:'2:a perioden',P3:'3:e perioden',OT:'Förlän
 MK.pshort=p=>({P1:'P1',P2:'P2',P3:'P3',OT:'OT',PAUS:'PAUS',SLUT:'SLUT'})[p]||p;
 // Mutationer (används av kontroll)
 MK.commit=function(){const s=MK.state,e0=MK.elapsed(s),e=MK.penEl(s);if(!s.clock.running)return;
-  for(const t of[0,1]){const r=MK.penSim(s,t,e);s.pens[t].forEach(p=>p.left=r.L.get(p.id));s.pens[t].forEach(p=>{if(p.coin&&r.gone.has(p.id)){p.left=0;p.done=true}});s.pens[t]=s.pens[t].filter(p=>p.done||!r.gone.has(p.id))}
+  for(const t of[0,1]){const r=MK.penSim(s,t,e);s.pens[t].forEach(p=>p.left=r.L.get(p.id));MK.stash(s,t,r,s.clock.remain);s.pens[t].forEach(p=>{if(p.coin&&r.gone.has(p.id)){p.left=0;p.done=true}});s.pens[t]=s.pens[t].filter(p=>p.done||!r.gone.has(p.id))}
   s.clock.remain=Math.max(0,s.clock.remain-e0);s.clock.startedAt=Date.now();};
 MK.start=()=>{const s=MK.state;if(s.clock.running||s.clock.remain<=0)return;s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
 MK.stop=()=>{const s=MK.state;if(!s.clock.running)return;MK.commit();s.clock.running=false;s.lastStop={period:s.period,remain:s.clock.remain,len:MK.periodLen(s.period),at:Date.now()};MK.save()};
 MK.toggle=()=>MK.state.clock.running?MK.stop():MK.start();
-MK.adjust=ms=>{MK.commit();const s=MK.state,max=MK.periodLen(s.period);s.clock.remain=Math.min(max,Math.max(0,s.clock.remain+ms));MK.save()};
+MK.adjust=ms=>{MK.commit();const s=MK.state,max=MK.periodLen(s.period);MK.setTime(Math.min(max,Math.max(0,s.clock.remain+ms)))};
 MK.setTime=ms=>{MK.commit();const s=MK.state,old=s.clock.remain;s.clock.remain=Math.max(0,ms);
-  if(/^(P\d|OT)$/.test(s.period)&&!MK.current(s))MK.shiftPens(old-s.clock.remain);MK.save()};
+  if(/^(P\d|OT)$/.test(s.period)&&!MK.current(s))MK.shiftPens(old-s.clock.remain,old);MK.save()};
 // Utvisningar lagras som återstående SPELTID (left, ms) och räknas ned med spelklockans förlupna tid (MK.commit/penSim),
 // aldrig väggklocka. Vid redigerad matchtid flyttas de med samma delta d (förlupen speltid, + = framåt):
 //  framåt: samma simulering som när klockan går (kö, 2+2-delar, slot som frigörs, kvittade -> 'done').
 //  bakåt: pågående (avtjänas nu, inkl. kvittade och 'done' kvittade) får +|d|, max full längd. Är |d| större än vad en
 //  pågående del hunnit avtjäna återställs inte redan avslutade/borttagna delar (de finns inte kvar) – kladdas till full längd.
 MK.fullLen=p=>p.min*60000;
-MK.shiftPens=d=>{const s=MK.state;if(!d)return;for(const t of[0,1]){
-  if(d>0){const r=MK.penSim(s,t,d);s.pens[t].forEach(p=>{if(p.done)return;p.left=r.L.get(p.id);if(r.gone.has(p.id)&&p.coin){p.left=0;p.done=true}});
+// Utvisningar som löper ut (naturligt eller via tidsredigering) sparas med speltiden de tog slut (gAt = kvarvarande periodtid),
+// så att de återuppstår med rätt resttid om matchtiden redigeras bakåt.
+MK.stash=(s,t,r,rem0)=>{s.pgone=s.pgone||[[],[]];r.G.forEach((u,id)=>{const p=s.pens[t].find(q=>q.id===id);if(!p||p.done)return;
+  const at=rem0-u;if(p.coin){p.gAt=at;p.gP=s.period}else s.pgone[t].push({p:JSON.parse(JSON.stringify(p)),at,per:s.period})});
+  s.pgone[t]=s.pgone[t].slice(-40)};
+MK.shiftPens=(d,old)=>{const s=MK.state;if(!d)return;if(old==null)old=s.clock.remain+d;const nr=old-d;for(const t of[0,1]){
+  if(d>0){const r=MK.penSim(s,t,d);MK.stash(s,t,r,old);s.pens[t].forEach(p=>{if(p.done)return;p.left=r.L.get(p.id);if(r.gone.has(p.id)&&p.coin){p.left=0;p.done=true}});
     s.pens[t]=s.pens[t].filter(p=>p.done||p.kind==='gm'||!r.gone.has(p.id))}
-  else{const run=MK.penSim(s,t,0).run;s.pens[t].forEach(p=>{if(run.includes(p)||(p.done&&p.coin)){p.left=Math.min(MK.fullLen(p),Math.max(0,p.left-d));if(p.done&&p.left>0)p.done=false}})}}};
+  else{const run=MK.penSim(s,t,0).run;s.pens[t].forEach(p=>{if(run.includes(p)){p.left=Math.min(MK.fullLen(p),Math.max(0,p.left-d))}
+      else if(p.done&&p.coin){const back=p.gP===s.period&&p.gAt!=null?nr-p.gAt:-d;if(back>0){p.left=Math.min(MK.fullLen(p),back);p.done=false;delete p.gAt}}});
+    s.pgone=s.pgone||[[],[]];const keep=[];s.pgone[t].forEach(g=>{if(g.per===s.period&&nr>g.at&&!s.pens[t].some(q=>q.id===g.p.id)){const p=g.p;p.left=Math.min(MK.fullLen(p),nr-g.at);s.pens[t].push(p)}else keep.push(g)});s.pgone[t]=keep}}};
 MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT:l.P)*60000};
 // Förinställningar (min). Källor: SIF TB 2026/27 §1:6 (3x20, periodpaus 18 förbundsserie / 15 distrikt-region), §5:7 D (OT max 5 min, 3+1),
 // SIF SB 2026/27 (U18/U19/U20 SM-slutspel: OT max 10 min, paus före OT max 3), IIHF R77.2 (paus 15), R84.1 (OT 5, paus 3).

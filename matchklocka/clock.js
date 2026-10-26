@@ -10,7 +10,7 @@ MK.LocalTransport={ // BroadcastChannel + localStorage (samma dator)
 };
 // Exempel på framtida transport: {init(onRemote){...ws.onmessage...}, load(){return null}, publish(s){ws.send(JSON.stringify(s))}}
 MK.defaults=()=>({v:0,home:'Piteå HC',away:'Motståndare',goals:[0,0],shots:[0,0],period:'P1',
-  len:{P:20,PAUS:15,OT:5},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
+  len:{P:20,PAUS:15,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
 MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s=null;
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
   MK.state=Object.assign(MK.defaults(),s||{});return MK.state};
@@ -60,7 +60,7 @@ MK.fmtUp=ms=>{const sec=Math.floor(ms/1000);return Math.floor(sec/60)+':'+String
 MK.setDir=d=>{MK.state.dir=d;MK.save()};
 MK.setShown=ms=>{const s=MK.state;MK.setTime(MK.dir(s)==='up'&&s.period!=='PAUS'?MK.periodLen(s.period)-ms:ms)};
 MK.editPen=(t,id,ms)=>{MK.commit();const p=MK.state.pens[t].find(p=>p.id===id);if(p)p.left=Math.max(0,ms);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.left>0);MK.save()};
-MK.powerbreak=on=>{if(on){MK.stop();MK.state.pb={endsAt:Date.now()+(MK.state.len.PB||90)*1000}}else MK.state.pb=null;MK.save()};
+MK.powerbreak=on=>{if(on){MK.stop();const n=Date.now(),l=MK.state.len;MK.state.pb={start:n,endsAt:n+(l.PB||70)*1000,sigAt:n+(l.PBS??60)*1000,sig:false}}else MK.state.pb=null;MK.save()};
 MK.cd=x=>x?Math.max(0,x.endsAt-Date.now()):0;
 MK.overlay=s=>{const t=MK.cd(s.timeout),p=MK.cd(s.pb);
   if(t>0)return{k:'TIMEOUT '+(s.timeout.team?s.away:s.home).toUpperCase(),v:MK.fmtP(t)};if(p>0)return{k:'POWERBREAK',v:MK.fmtP(p)};return null};

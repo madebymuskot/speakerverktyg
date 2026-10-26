@@ -11,12 +11,12 @@ button.on{background:#AF2E32;border-color:#fff}input{font-size:18px;padding:6px;
 <main>
 <div class="box full"><div style="text-align:center"><button id="edt" style="font-size:14px;padding:4px 10px">Redigera tid</button><span id="edbox" hidden style="background:#222;border:2px solid #FFB000;border-radius:8px;padding:6px;margin-left:6px"><input id="tset" style="width:120px;font-size:24px" placeholder="mm:ss"> <button id="tsave">Spara</button><button id="tcancel">Avbryt</button> <small style="color:#bbb">mm:ss, mm:ss,t eller sekunder · Enter/Esc</small></span></div><div id="clk" class="tnum">20:00</div><div id="st"></div><div id="ov"></div>
 <div class="bigb"><button id="go">START</button><button id="ovx" disabled>AVBRYT<small>&nbsp;</small></button></div>
-<div style="text-align:center"><button id="pb">Powerbreak</button></div></div>
+<div style="text-align:center"><button id="pb">Powerbreak</button><button id="bz" title="Håll för att tuta · kortkommando B" style="background:#FFB000;color:#000;border-color:#fff">BUZZER</button></div></div>
 
 <div class="box" id="t0"></div><div class="box" id="t1"></div>
 <div class="box full"><h2>Match (swehockey)</h2>Matchnummer <input id="gid" style="width:120px" placeholder="1116151"> <button id="gidb">Hämta lag</button> <span id="gmsg" style="color:#bbb"></span></div>
 <div class="box full" id="next" style="text-align:center;font-size:28px;font-weight:900;color:#FFB000"></div>
-<div class="box full"><h2>Inställningar</h2>Periodlängd <input id="lP" type="number" step="any"> min · Paus <input id="lPAUS" type="number" step="any"> min · OT <input id="lOT" type="number" step="any"> min (5/20) · Powerbreak <input id="lPB" type="number" step="any"> s
+<div class="box full"><h2>Inställningar</h2>Periodlängd <input id="lP" type="number" step="any"> min · Paus <input id="lPAUS" type="number" step="any"> min · OT <input id="lOT" type="number" step="any"> min (5/20) · Powerbreak: längd <input id="lPB" type="number" step="any"> s · signal efter <input id="lPBS" type="number" step="any"> s
 <button id="rst">Nollställ match</button></div>
 <div class="full" style="opacity:.6;font-size:13px;color:#bbb">Manuell override – period: <span id="per"></span> (normalt sköts perioder/paus automatiskt) · Klockan räknar: <button id="dn">NER</button><button id="up">UPP</button></div></main><script src="clock.js"></script><script>
 const $=i=>document.getElementById(i),s0=MK.init();
@@ -38,8 +38,8 @@ let sig='';function render(){const s=MK.state,k=JSON.stringify([s.short,s.swName
  $('go').textContent=s.clock.running?'STOPP':'START';$('go').className=s.clock.running?'stop':'start';$('st').textContent=MK.pname(s.period)+(s.clock.running?' · klockan går':' · stoppad');
  document.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===s.period));$('dn').classList.toggle('on',MK.dir(s)==='down');$('up').classList.toggle('on',MK.dir(s)==='up');
  const o=MK.overlay(s);$('ov').textContent=o?o.k+' '+o.v:'';pens(0);pens(1);
- for(const x of['P','PAUS','OT','PB'])if(document.activeElement!==$('l'+x))$('l'+x).value=s.len[x]||90;
- MK.autoTick();{const c=MK.current(MK.state);$('ovx').disabled=!c;const ss=MK.state,sub=c==='paus'?(ss.next?'Paus – går till '+ss.next:'Paus'):c==='powerbreak'?'Powerbreak – tillbaka till matchen':c==='timeout'?'Timeout '+(ss.timeout.team?ss.away:ss.home):'&nbsp;';$('ovx').innerHTML='AVBRYT<small>'+sub+'</small>'}const nl=MK.nextLabel(s)||(s.period==='SLUT'?'Matchen är slut':(!s.clock.running&&s.clock.remain===MK.periodLen(s.period)&&s.period!=='PAUS'?MK.pshort(s.period)+' redo – tryck mellanslag':''));$('next').textContent=nl;$('next').hidden=!nl;}
+ for(const x of['P','PAUS','OT','PB','PBS'])if(document.activeElement!==$('l'+x))$('l'+x).value=s.len[x]??({PB:70,PBS:60})[x];
+ if(s.pb&&!s.pb.sig&&Date.now()>=s.pb.sigAt&&MK.cd(s.pb)>0){s.pb.sig=true;MK.save();BZ.buzz(1500)}MK.autoTick();{const c=MK.current(MK.state);$('ovx').disabled=!c;const ss=MK.state,sub=c==='paus'?(ss.next?'Paus – går till '+ss.next:'Paus'):c==='powerbreak'?'Powerbreak – tillbaka till matchen':c==='timeout'?'Timeout '+(ss.timeout.team?ss.away:ss.home):'&nbsp;';$('ovx').innerHTML='AVBRYT<small>'+sub+'</small>'}const nl=MK.nextLabel(s)||(s.period==='SLUT'?'Matchen är slut':(!s.clock.running&&s.clock.remain===MK.periodLen(s.period)&&s.period!=='PAUS'?MK.pshort(s.period)+' redo – tryck mellanslag':''));$('next').textContent=nl;$('next').hidden=!nl;}
 setInterval(()=>{if(!document.activeElement.matches('#pl0 input,#pl1 input'))render();else{$('clk').textContent=MK.fmtShown(MK.state)}},50);MK.on(()=>{sig='';render()});
 $('go').onclick=MK.toggle;const ptime=v=>{const m=String(v).trim().replace('.',',').match(/^(?:(\d+):)?(\d+)(?:,(\d))?$/);return m?((+(m[1]||0))*60+ +m[2])*1000+(+(m[3]||0))*100:null};
 const edClose=()=>{$('edbox').hidden=true;$('edt').hidden=false};
@@ -48,8 +48,20 @@ const edSave=()=>{const v=ptime($('tset').value);if(v==null){$('tset').style.bor
 $('tsave').onclick=edSave;$('tcancel').onclick=edClose;$('tset').onkeydown=e=>{if(e.key==='Enter')edSave();else if(e.key==='Escape')edClose();e.stopPropagation()};
 document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>MK.setPeriod(b.dataset.p));
 $('dn').onclick=()=>MK.setDir('down');$('up').onclick=()=>MK.setDir('up');$('pb').onclick=()=>MK.powerbreak(true);$('ovx').onclick=()=>MK.advance();
-for(const x of['P','PAUS','OT','PB'])$('l'+x).onchange=e=>{MK.state.len[x]=+e.target.value;MK.save()};
+for(const x of['P','PAUS','OT','PB','PBS'])$('l'+x).onchange=e=>{MK.state.len[x]=+e.target.value;MK.save()};
 $('gid').value=MK.state.gid||'1112958';$('gidb').onclick=async()=>{$('gmsg').textContent='Hämtar…';try{const t=await MK.loadGame($('gid').value.trim());$('gmsg').textContent=`OK: ${t[0].name} (${t[0].players.length}) – ${t[1].name} (${t[1].players.length})`;sig=''}catch(e){$('gmsg').textContent='Misslyckades ('+e.message+') – fyll i lagnamn/nummer manuellt'}};
 $('rst').onclick=()=>confirm('Nollställa matchen?')&&MK.reset();
 addEventListener('keydown',e=>{if(e.code==='Space'&&!e.target.matches('input')){e.preventDefault();MK.toggle()}});render();
+// Buzzer (Web Audio, inget externt ljud)
+const BZ={ctx:null,nodes:null,t0:0,unlock(){if(!this.ctx)this.ctx=new(window.AudioContext||window.webkitAudioContext)();if(this.ctx.state==='suspended')this.ctx.resume()},
+ on(){this.unlock();if(this.nodes)return;const c=this.ctx,g=c.createGain();g.gain.setValueAtTime(0,c.currentTime);g.gain.linearRampToValueAtTime(0.5,c.currentTime+0.02);
+  const comp=c.createDynamicsCompressor();g.connect(comp);comp.connect(c.destination);
+  const os=[[196,'sawtooth'],[247,'square'],[294,'sawtooth'],[392,'square']].map(([f,t])=>{const o=c.createOscillator();o.type=t;o.frequency.value=f;const og=c.createGain();og.gain.value=.25;o.connect(og);og.connect(g);o.start();return o});
+  this.nodes={g,os};this.t0=Date.now();BZ.count=(BZ.count||0)+1},
+ off(){if(!this.nodes)return;const {g,os}=this.nodes,c=this.ctx;this.nodes=null;g.gain.setTargetAtTime(0,c.currentTime,0.03);os.forEach(o=>o.stop(c.currentTime+0.2))},
+ offMin(){const w=Math.max(0,400-(Date.now()-this.t0));setTimeout(()=>this.off(),w)},
+ buzz(ms){this.on();clearTimeout(this.tm);this.tm=setTimeout(()=>this.off(),ms||1500)}};
+addEventListener('pointerdown',()=>BZ.unlock(),{once:true});
+const bz=$('bz');bz.onpointerdown=e=>{e.preventDefault();BZ.on()};['pointerup','pointerleave','pointercancel'].forEach(ev=>bz.addEventListener(ev,()=>BZ.offMin()));
+addEventListener('keydown',e=>{if((e.key==='b'||e.key==='B')&&!e.target.matches('input')&&!e.repeat)BZ.on()});addEventListener('keyup',e=>{if(e.key==='b'||e.key==='B')BZ.offMin()});
 </script></body></html>

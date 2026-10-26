@@ -12,7 +12,9 @@ main{padding:10px 12px}h2{color:#fff;font-size:17px;margin:14px 0 6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px}
 .c{aspect-ratio:1;border-radius:50%;border:3px solid #555;background:#151515;color:#fff;font-size:24px;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .c small{font-size:9px;font-weight:400;color:#aaa;max-width:90%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-/*farg*/.big{max-width:100%;white-space:normal}
+/*farg*/.dual .btn small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:600px){.dual .btn{font-size:17px;padding:10px 8px}}
+.dual{display:flex;gap:10px;width:100%;max-width:640px}.dual .btn{flex:1 1 0;min-width:0;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center}.dual .hb{border-color:#444}
+.big{max-width:100%;white-space:normal}
 .kR{--tc:#E0393E;--tt:#fff}.kY{--tc:#FFD100;--tt:#000}
 nav button.kR,nav button.kY{border-top:4px solid var(--tc)}nav button.on.kR,nav button.on.kY{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 22%,#222)}
 main.kR .c.on,main.kY .c.on{background:var(--tc);border-color:var(--tc);color:var(--tt)}main.kR .c.on small{color:#fdd}main.kY .c.on small{color:#222}
@@ -70,8 +72,9 @@ function render(){[0,1].forEach(i=>{const b=$('tb'+i);b.classList.remove('kR','k
  const m=$('m'),t=P.tab;m.className=t<2?kc(t):'';
  if(t<2){const r=roster(t),on=P.on[t],g=on.filter(n=>isG(t,n)).length,warn=on.length>6||g>1;
   const grp=[['Målvakter',r.filter(p=>p.pos==='M')],['Backar',r.filter(p=>p.pos==='B')],['Forwards',r.filter(p=>p.pos==='F')],['Övriga',r.filter(p=>!['M','B','F'].includes(p.pos))]].filter(x=>x[1].length);
-  m.innerHTML=`<div class="bar"><button class="btn big" onclick="log('Mål',${t})">Registrera mål<small style="display:block;font-size:12px;font-weight:600;color:#bbb">${esc(team(t))}</small></button><button class="btn" onclick="log('Händelse',null)">Registrera händelse</button><span id="cnt" class="${warn?'warn':''}">På isen: <span class="${warn?'':'oi'}">${on.length}</span>${warn?' – för många!':''}</span></div>
+  m.innerHTML=`<div class="bar"><div class="dual"><button class="btn big" onclick="log('Mål',${t})">Registrera mål<small style="display:block;font-size:12px;font-weight:600;color:#bbb">${esc(team(t))}</small></button><button class="btn big hb" onclick="log('Händelse',null)">Registrera händelse</button></div></div>
   <div class="bar"><button class="sm" onclick="femma(${t})">Byt femma (behåll MV)</button><button class="sm rd" onclick="P.on[${t}]=[];sv();render()">Töm isen</button></div>
+  <div class="bar" style="margin:14px 0 0"><span id="cnt" class="${warn?'warn':''}">På isen: <span class="${warn?'':'oi'}">${on.length}</span>${warn?' – för många!':''}</span></div>
   ${grp.map(([h,l])=>`<h2>${h}</h2><div class="grid">${l.map(p=>circ(t,p)).join('')}</div>`).join('')||'<p style="color:#999">Ingen laglista från matchklockan – lägg till nummer nedan.</p>'}
   <h2>Lägg till nummer</h2><div class="bar"><input id="add${t}" inputmode="numeric" maxlength="2" placeholder="Nr" onkeydown="if(event.key==='Enter')addNo(${t})"><button class="sm" onclick="addNo(${t})">Lägg till</button>${P.extra[t].map(n=>`<button class="sm" onclick="rmNo(${t},'${n}')">${esc(n)} ✕</button>`).join('')}</div>`}
  else{const SC=score();m.innerHTML=`<h2>Protokoll</h2><table><tr><th>Händelse</th><th>Per</th><th>Spelat</th><th>På isen</th><th></th><th class="np"></th></tr>${P.log.slice().reverse().map(e=>`<tr><td>${SC[e.id]?`<span class="sc">${SC[e.id]}</span> `:''}<b>${esc(e.type)}</b> ${esc(e.team)}${e.auto?' <small style="color:#999">(klocka)</small>':''}</td><td>${esc(e.per)}</td><td class="oi">${esc(e.sp)}</td><td class="${kc(0)}">${plist(0,e.h)}</td><td class="${kc(1)}">${plist(1,e.b)}</td><td class="np"><button onclick="edit(${e.id})">Ändra</button><button onclick="del(${e.id})">✕</button></td></tr>`).join('')||'<tr><td colspan=6 style="color:#999">Inga händelser ännu</td></tr>'}</table>

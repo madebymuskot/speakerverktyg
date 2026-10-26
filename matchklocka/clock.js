@@ -13,15 +13,34 @@ MK.defaults=()=>({v:0,home:'Piteå HC',away:'Motståndare',goals:[0,0],shots:[0,
   len:{P:20,PAUS:15,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
 MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s=null;
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
-  MK.state=Object.assign(MK.defaults(),s||{});return MK.state};
+  MK.state=Object.assign(MK.defaults(),s||{});MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};
 MK.on=f=>MK.listeners.push(f);MK.emit=()=>MK.listeners.forEach(f=>f(MK.state));
 MK.save=function(){MK.state.v=Date.now();MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
 // Tidsberäkning (Date.now-baserad, ingen intervalldrift)
 MK.elapsed=s=>s.clock.running?Date.now()-s.clock.startedAt:0;
 MK.remain=s=>Math.max(0,s.clock.remain-MK.elapsed(s));
-MK.activePens=(s,t)=>s.pens[t].filter(p=>p.min!==10).slice(0,2); // max 2 samtidigt räknas ner
+// ===== Utvisningsmotor enligt IIHF Official Rule Book 2026/27 (som Svenska Ishockeyförbundet tillämpar) =====
+// Utvisning: {id,nr,min,kind:'min'|'maj'|'mis'|'gm',left(ms),coin(bool),after(id|null),lbl}
+//  kind 'min' = mindre straff 2 min (R16) / del av dubbel 2+2 (R18), 'maj' = 5 min (R20),
+//  'mis' = 10 min personligt (R22), 'gm' = matchstraff/game misconduct (R23, ingen tid – resten av matchen).
+// Räknande (påverkar numerär): min/maj som inte är coin. Högst 2 räknande avtjänas samtidigt, övriga köas
+//  och börjar när plats blir ledig (R26.1 Delayed Penalty); laget har alltid minst 3 utespelare (R26.1).
+// Samtidiga lika straff (coin, R19.1/19.2): ersättare direkt -> ingen numerärändring, räknas inte i R26-regeln; tiden räknas.
+// 10 min (R22.1/22.3): ersättare direkt, ingen numerärändring, egen tid. 'after' = startar när föregående del är avtjänad
+//  (andra delen av 2+2 R18.1; 10:an i 2+10 R22.3; GM i 5+20 R20.4/R23).
+MK.counts=p=>(p.kind==='min'||p.kind==='maj')&&!p.coin;
+MK.penSim=(s,t,e)=>{const L=new Map(s.pens[t].map(p=>[p.id,p.left])),gone=new Set();let run=[],slot=[];
+  for(let g=0;g<50;g++){const elig=s.pens[t].filter(p=>!gone.has(p.id)&&(!p.after||gone.has(p.after)||!s.pens[t].some(q=>q.id===p.after)));
+    slot=elig.filter(MK.counts).slice(0,2);run=slot.concat(elig.filter(p=>!MK.counts(p)&&p.kind!=='gm'));
+    if(e<=0||!run.length)break;const dt=Math.min(e,...run.map(p=>L.get(p.id)));
+    run.forEach(p=>{L.set(p.id,L.get(p.id)-dt);if(L.get(p.id)<=0)gone.add(p.id)});e-=dt}
+  return{L,gone,run,slot}};
+MK.penNow=(s,t)=>MK.penSim(s,t,MK.penEl(s));
+MK.activePens=(s,t)=>MK.penNow(s,t).slot; // räknande som avtjänas nu (max 2, R26.1)
+MK.penRunning=(s,t,p)=>MK.penNow(s,t).run.includes(p);
 MK.penEl=s=>s.period==='PAUS'||s.period==='SLUT'?0:MK.elapsed(s); // utvisningar står still i pausen, fortsätter i nästa period
-MK.penLeft=(s,p,t)=>{const act=MK.activePens(s,t).includes(p)||p.min===10;return Math.max(0,p.left-(act?MK.penEl(s):0))};
+MK.penLeft=(s,p,t)=>p.kind==='gm'?1:Math.max(0,MK.penNow(s,t).L.get(p.id)??0);
+MK.penTxt=(s,p,t)=>p.kind==='gm'?'GM':MK.fmtP(MK.penLeft(s,p,t));
 MK.fmt=ms=>{if(ms<60000&&ms>0){const t=Math.floor(ms/100);return Math.floor(t/10)+','+(t%10)}
   const sec=Math.ceil(ms/1000);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 MK.fmtP=ms=>{const sec=Math.ceil(ms/1000);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
@@ -29,29 +48,40 @@ MK.pname=p=>({P1:'1:a perioden',P2:'2:a perioden',P3:'3:e perioden',OT:'Förlän
 MK.pshort=p=>({P1:'P1',P2:'P2',P3:'P3',OT:'OT',PAUS:'PAUS',SLUT:'SLUT'})[p]||p;
 // Mutationer (används av kontroll)
 MK.commit=function(){const s=MK.state,e0=MK.elapsed(s),e=MK.penEl(s);if(!s.clock.running)return;
-  for(const t of[0,1]){const act=MK.activePens(s,t);s.pens[t].forEach(p=>{if(act.includes(p)||p.min===10)p.left-=e});
-    s.pens[t]=s.pens[t].filter(p=>p.left>0)}
+  for(const t of[0,1]){const r=MK.penSim(s,t,e);s.pens[t].forEach(p=>p.left=r.L.get(p.id));s.pens[t]=s.pens[t].filter(p=>!r.gone.has(p.id))}
   s.clock.remain=Math.max(0,s.clock.remain-e0);s.clock.startedAt=Date.now();};
 MK.start=()=>{const s=MK.state;if(s.clock.running||s.clock.remain<=0)return;s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};
 MK.stop=()=>{const s=MK.state;if(!s.clock.running)return;MK.commit();s.clock.running=false;MK.save()};
 MK.toggle=()=>MK.state.clock.running?MK.stop():MK.start();
 MK.adjust=ms=>{MK.commit();const s=MK.state,max=MK.periodLen(s.period);s.clock.remain=Math.min(max,Math.max(0,s.clock.remain+ms));MK.save()};
 MK.setTime=ms=>{MK.commit();MK.state.clock.remain=Math.max(0,ms);MK.save()};
-MK.periodLen=p=>{const l=MK.state.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT:l.P)*60000};
+MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?(s.next==='OT'&&l.OTP!=null?l.OTP:l.PAUS):p==='OT'?l.OT:l.P)*60000};
+// Förinställningar (min). Källor: SIF TB 2026/27 §1:6 (3x20, periodpaus 18 förbundsserie / 15 distrikt-region), §5:7 D (OT max 5 min, 3+1),
+// SIF SB 2026/27 (U18/U19/U20 SM-slutspel: OT max 10 min, paus före OT max 3), IIHF R77.2 (paus 15), R84.1 (OT 5, paus 3).
+// OTP utelämnad = paus före OT ej fastställd i källan -> används vanlig paus (konfigurerbart).
+MK.PRESETS={'Förbundsserie, t.ex. Hockeyettan / U18 Nationell grundserie (TB)':{P:20,PAUS:18,OT:5},
+  'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10,OTP:3},'Distrikt/region (TB, om ej annat i SB)':{P:20,PAUS:15,OT:5},'IIHF (regelboken)':{P:20,PAUS:15,OT:5,OTP:3}};
+MK.preset=k=>{const l=MK.state.len,v=MK.PRESETS[k];if(!v)return;delete l.OTP;Object.assign(l,v);MK.save()};
 MK.setPeriod=p=>{MK.commit();const s=MK.state;s.clock.running=false;s.period=p;s.next=null;s.clock.remain=p==='SLUT'?0:MK.periodLen(p);MK.save()};
+// Mål (R16.2/R17.2): om det insläppande laget är i numerärt underläge (R16.2 "short-handed") avslutas det räknande
+// mindre straffet med minst tid kvar. 5 min (R20.2), 10 min (R22) och samtidiga (R19) avslutas aldrig av mål.
+// Dubbel 2+2: bara pågående del avslutas (andra delen startar då direkt). 2+10: 10:an startar direkt (R22.3).
 MK.goal=(t,d)=>{MK.commit();const s=MK.state;s.goals[t]=Math.max(0,s.goals[t]+d);
-  if(d>0){const o=1-t,st=MK.strength(s); // motståndarens kortaste 2-minuters tas bort vid mål i numerärt överläge (samma numerär som TV)
-    if(st&&st.pp===t){const ao=MK.activePens(s,o).filter(p=>MK.penLeft(s,p,o)>0);const two=ao.filter(p=>p.min===2).sort((a,b)=>a.left-b.left)[0];if(two)s.pens[o]=s.pens[o].filter(p=>p!==two)}}
+  if(d>0){const o=1-t,st=MK.strength(s);
+    if(st&&st.pp===t){const two=MK.activePens(s,o).filter(p=>p.kind==='min').sort((a,b)=>a.left-b.left)[0];if(two)s.pens[o]=s.pens[o].filter(p=>p!==two)}}
   MK.save()};
 MK.shot=(t,d)=>{MK.state.shots[t]=Math.max(0,MK.state.shots[t]+d);MK.save()};
-MK.addPen=(t,nr,min)=>{MK.commit();const s=MK.state;s.pens[t].push({id:s.pid++,nr,min,left:min*60000});MK.save()};
+MK.PENTYPES={'2':[[2,'min']],'2+2':[[2,'min'],[2,'min']],'5':[[5,'maj']],'10':[[10,'mis']],'2+10':[[2,'min'],[10,'mis']],'5+20':[[5,'maj'],[20,'gm']]};
+MK.addPen=(t,nr,type,coin)=>{MK.commit();const s=MK.state;let prev=null;type=String(type);
+  for(const[m,kind]of MK.PENTYPES[type]||[[+type,'min']]){const p={id:s.pid++,nr,min:m,kind,left:m*60000,coin:!!coin&&kind!=='mis'&&kind!=='gm',after:prev,lbl:type};
+    if(prev){const i=s.pens[t].findIndex(q=>q.id===prev);s.pens[t].splice(i+1,0,p)}else s.pens[t].push(p);prev=p.id}MK.save()};
 MK.delPen=(t,id)=>{MK.commit();MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
 MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.now()+30000};MK.save()};
 MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs
 MK.view=function(render){MK.init();MK.on(render);const loop=()=>{render(MK.state);requestAnimationFrame(loop)};loop()};
-MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>MK.penLeft(s,p,t)>0).map(p=>{const a=MK.activePens(s,t).includes(p)||p.min===10;
-  return `<div class="${cls}${a?'':' q'}">#${p.nr} <b>${MK.fmtP(MK.penLeft(s,p,t))}</b></div>`}).join('');
+MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>MK.penLeft(s,p,t)>0).map(p=>{const a=MK.penRunning(s,t,p)||p.kind==='gm';
+  return `<div class="${cls}${a?'':' q'}">#${p.nr} <b>${MK.penTxt(s,p,t)}</b></div>`}).join('');
 // Tillägg: räkna upp/ner, redigera utvisning, powerbreak
 MK.dir=s=>s.dir||'down';
 MK.shown=s=>MK.dir(s)==='up'&&s.period!=='PAUS'?MK.periodLen(s.period)-MK.remain(s):MK.remain(s);
@@ -59,7 +89,7 @@ MK.fmtShown=s=>MK.dir(s)==='up'&&s.period!=='PAUS'?MK.fmtUp(MK.shown(s)):MK.fmt(
 MK.fmtUp=ms=>{const sec=Math.floor(ms/1000);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 MK.setDir=d=>{MK.state.dir=d;MK.save()};
 MK.setShown=ms=>{const s=MK.state;MK.setTime(MK.dir(s)==='up'&&s.period!=='PAUS'?MK.periodLen(s.period)-ms:ms)};
-MK.editPen=(t,id,ms)=>{MK.commit();const p=MK.state.pens[t].find(p=>p.id===id);if(p)p.left=Math.max(0,ms);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.left>0);MK.save()};
+MK.editPen=(t,id,ms)=>{MK.commit();const p=MK.state.pens[t].find(p=>p.id===id);if(p)p.left=Math.max(0,ms);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.left>0||p.kind==='gm');MK.save()};
 MK.powerbreak=on=>{if(on){MK.stop();const n=Date.now(),l=MK.state.len;MK.state.pb={start:n,endsAt:n+(l.PB||70)*1000,sigAt:n+(l.PBS??60)*1000,sig:false}}else MK.state.pb=null;MK.save()};
 MK.cd=x=>x?Math.max(0,x.endsAt-Date.now()):0;
 MK.overlay=s=>{const t=MK.cd(s.timeout),p=MK.cd(s.pb);

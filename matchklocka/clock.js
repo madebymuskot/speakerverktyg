@@ -78,8 +78,15 @@ MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;s.gid=gid;s
 MK.pname2=(s,t,nr)=>{const p=((s.rosters||[])[t]||[]).find(p=>p.no==nr);return p?p.name:''};
 // Automatiskt matchflöde: period slut -> paus (räknar ner) -> nästa period laddad, stoppad
 MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]?'OT':'SLUT',OT:'SLUT'})[s.period]||null;
-MK.autoTick=function(){const s=MK.state;if(!s.clock.running||MK.remain(s)>0)return;
-  if(s.period==='PAUS'){const n=s.next||'P2';MK.setPeriod(n);return}
+// "Nästa steg i tidslinjen" – används både av automatik (nedräkning når 0) och Avbryt-knappen
+MK.current=s=>MK.cd(s.timeout)>0?'timeout':MK.cd(s.pb)>0?'powerbreak':s.period==='PAUS'?'paus':null;
+MK.advance=function(){const s=MK.state,c=MK.current(s);
+  if(c==='timeout'){s.timeout=null;MK.save()}else if(c==='powerbreak'){s.pb=null;MK.save()}
+  else if(c==='paus'){MK.setPeriod(s.next||'P2')}};
+MK.autoTick=function(){const s=MK.state;
+  if((s.timeout&&MK.cd(s.timeout)<=0)){s.timeout=null;MK.save()}if(s.pb&&MK.cd(s.pb)<=0){s.pb=null;MK.save()}
+  if(!s.clock.running||MK.remain(s)>0)return;
+  if(s.period==='PAUS'){MK.advance();return}
   MK.stop();const n=MK.nextOf(s);if(!n)return;
   if(n==='SLUT'){s.period='SLUT';s.next=null;s.clock.remain=0;MK.save();return}
   s.period='PAUS';s.next=n;s.clock.remain=MK.periodLen('PAUS');s.clock.running=true;s.clock.startedAt=Date.now();MK.save()};

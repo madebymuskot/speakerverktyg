@@ -12,7 +12,7 @@ button.on{background:#AF2E32;border-color:#fff}input{font-size:18px;padding:6px;
 <div class="box full"><div id="clk" class="tnum">20:00</div><div id="st"></div><div id="ov"></div><div style="text-align:center">
 <button id="go" style="font-size:28px;padding:12px 40px">START</button>
 <button id="edt">Redigera tid</button><span id="edbox" hidden style="background:#222;border:2px solid #FFB000;border-radius:8px;padding:6px;margin-left:6px"><input id="tset" style="width:120px;font-size:24px" placeholder="mm:ss"> <button id="tsave">Spara</button><button id="tcancel">Avbryt</button> <small style="color:#bbb">mm:ss, mm:ss,t eller sekunder · Enter/Esc</small></span><br>
-<button id="pb">Powerbreak</button><button id="ovx">Avbryt TO/PB</button></div></div>
+<button id="pb">Powerbreak</button><button id="ovx" hidden style="background:#AF2E32;border-color:#fff"></button></div></div>
 <div class="box" id="t0"></div><div class="box" id="t1"></div>
 <div class="box full"><h2>Match (swehockey)</h2>Matchnummer <input id="gid" style="width:120px" placeholder="1116151"> <button id="gidb">Hämta lag</button> <span id="gmsg" style="color:#bbb"></span></div>
 <div class="box full" id="next" style="text-align:center;font-size:28px;font-weight:900;color:#FFB000"></div>
@@ -37,7 +37,7 @@ let sig='';function render(){const s=MK.state,k=JSON.stringify([s.gid,(s.rosters
  document.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===s.period));$('dn').classList.toggle('on',MK.dir(s)==='down');$('up').classList.toggle('on',MK.dir(s)==='up');
  const o=MK.overlay(s);$('ov').textContent=o?o.k+' '+o.v:'';pens(0);pens(1);
  for(const x of['P','PAUS','OT','PB'])if(document.activeElement!==$('l'+x))$('l'+x).value=s.len[x]||90;
- MK.autoTick();const nl=MK.nextLabel(s)||(s.period==='SLUT'?'Matchen är slut':(!s.clock.running&&s.clock.remain===MK.periodLen(s.period)&&s.period!=='PAUS'?MK.pshort(s.period)+' redo – tryck mellanslag':''));$('next').textContent=nl;$('next').hidden=!nl;}
+ MK.autoTick();{const c=MK.current(MK.state);$('ovx').hidden=!c;if(c)$('ovx').textContent='Avbryt '+c}const nl=MK.nextLabel(s)||(s.period==='SLUT'?'Matchen är slut':(!s.clock.running&&s.clock.remain===MK.periodLen(s.period)&&s.period!=='PAUS'?MK.pshort(s.period)+' redo – tryck mellanslag':''));$('next').textContent=nl;$('next').hidden=!nl;}
 setInterval(()=>{if(!document.activeElement.matches('#pl0 input,#pl1 input'))render();else{$('clk').textContent=MK.fmtShown(MK.state)}},50);MK.on(()=>{sig='';render()});
 $('go').onclick=MK.toggle;const ptime=v=>{const m=String(v).trim().replace('.',',').match(/^(?:(\d+):)?(\d+)(?:,(\d))?$/);return m?((+(m[1]||0))*60+ +m[2])*1000+(+(m[3]||0))*100:null};
 const edClose=()=>{$('edbox').hidden=true;$('edt').hidden=false};
@@ -45,7 +45,7 @@ $('edt').onclick=()=>{MK.stop();$('edt').hidden=true;$('edbox').hidden=false;con
 const edSave=()=>{const v=ptime($('tset').value);if(v==null){$('tset').style.borderColor='#f00';return}$('tset').style.borderColor='';MK.setShown(v);edClose()};
 $('tsave').onclick=edSave;$('tcancel').onclick=edClose;$('tset').onkeydown=e=>{if(e.key==='Enter')edSave();else if(e.key==='Escape')edClose();e.stopPropagation()};
 document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>MK.setPeriod(b.dataset.p));
-$('dn').onclick=()=>MK.setDir('down');$('up').onclick=()=>MK.setDir('up');$('pb').onclick=()=>MK.powerbreak(true);$('ovx').onclick=()=>{MK.state.timeout=null;MK.powerbreak(false)};
+$('dn').onclick=()=>MK.setDir('down');$('up').onclick=()=>MK.setDir('up');$('pb').onclick=()=>MK.powerbreak(true);$('ovx').onclick=()=>MK.advance();
 for(const x of['P','PAUS','OT','PB'])$('l'+x).onchange=e=>{MK.state.len[x]=+e.target.value;MK.save()};
 $('gid').value=MK.state.gid||'1112958';$('gidb').onclick=async()=>{$('gmsg').textContent='Hämtar…';try{const t=await MK.loadGame($('gid').value.trim());$('gmsg').textContent=`OK: ${t[0].name} (${t[0].players.length}) – ${t[1].name} (${t[1].players.length})`;sig=''}catch(e){$('gmsg').textContent='Misslyckades ('+e.message+') – fyll i lagnamn/nummer manuellt'}};
 $('rst').onclick=()=>confirm('Nollställa matchen?')&&MK.reset();

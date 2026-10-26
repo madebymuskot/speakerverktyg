@@ -15,7 +15,9 @@ MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
   MK.state=Object.assign(MK.defaults(),s||{});if(!MK.state.len.v18){if(MK.state.len.PAUS===15)MK.state.len.PAUS=18;MK.state.len.v18=1}MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};
 MK.on=f=>MK.listeners.push(f);MK.emit=()=>MK.listeners.forEach(f=>f(MK.state));
-MK.save=function(){MK.state.v=Date.now();MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
+MK.shotSync=s=>{const P=/^(P[1-9]|OT\d*)$/;if(!P.test(s.period))return;const o=s.shotPer||'P1';if(o===s.period)return;s.shotsBy=s.shotsBy||{};s.shotsBy[o]=s.shots.slice();s.shots=(s.shotsBy[s.period]||[0,0]).slice();s.shotPer=s.period};
+MK.shotTot=(s,t)=>{const b=s.shotsBy||{},o=s.shotPer||'P1';let n=s.shots[t];for(const k in b)if(k!==o)n+=b[k][t];return n};
+MK.save=function(){MK.state.v=Date.now();MK.shotSync(MK.state);MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
 // Tidsberäkning (Date.now-baserad, ingen intervalldrift)
 MK.elapsed=s=>s.clock.running?Date.now()-s.clock.startedAt:0;
 MK.remain=s=>Math.max(0,s.clock.remain-MK.elapsed(s));

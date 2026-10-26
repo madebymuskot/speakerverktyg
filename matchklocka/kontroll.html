@@ -22,7 +22,9 @@ button.on{background:#AF2E32;border-color:#fff}input{font-size:18px;padding:6px;
 const $=i=>document.getElementById(i),s0=MK.init();
 const parse=v=>{const m=String(v).trim().match(/^(\d+)(?::(\d{1,2}))?$/);return m?(+m[1]*60+(+(m[2]||0)))*1000:null};
 $('per').innerHTML=['P1','P2','P3','OT','PAUS'].map(p=>`<button data-p="${p}">${p}</button>`).join('');
-function team(t){const s=MK.state;$('t'+t).innerHTML=`<h2>${t?'Borta':'Hemma'}</h2><input class="w" value="${t?s.away:s.home}" onchange="MK.state.${t?'away':'home'}=this.value;MK.save()">
+function team(t){const s=MK.state;$('t'+t).innerHTML=`<h2>${t?'Borta':'Hemma'}</h2><div style="display:flex;gap:6px;align-items:end;flex-wrap:wrap"><label style="font-size:13px;color:#bbb">Lagnamn (${t?'borta':'hemma'})<br><input class="w" style="width:240px;font-size:20px;background:#fff" id="nm${t}" value="${(t?s.away:s.home).replace(/"/g,'&quot;')}" onchange="MK.state.${t?'away':'home'}=this.value.trim()||MK.state.${t?'away':'home'};MK.save()"></label>
+<button title="Återställ till swehockey-namnet" ${(s.swName||[])[t]?'':'disabled'} onclick="MK.state.${t?'away':'home'}=MK.state.swName[${t}];MK.save()">↺</button>
+<label style="font-size:13px;color:#bbb">Kort (TV)<br><input id="ab${t}" maxlength="4" style="width:70px;text-transform:uppercase" value="${(s.short||[])[t]||''}" placeholder="${MK.ab(t?s.away:s.home)}" onchange="MK.state.short=MK.state.short||['',''];MK.state.short[${t}]=this.value.trim().toUpperCase();MK.save()"></label></div>
 <div class="big tnum">${s.goals[t]}</div><div style="text-align:center"><button onclick="MK.goal(${t},1)">MÅL +</button><button onclick="MK.goal(${t},-1)">Mål −</button></div>
 <div style="text-align:center">Skott <b class="tnum" id="sh${t}">${s.shots[t]}</b> <button onclick="MK.shot(${t},1)">+</button><button onclick="MK.shot(${t},-1)">−</button></div>
 <h2 style="margin-top:10px">Utvisningar</h2>Nr <input id="pn${t}" list="dl${t}" style="width:70px" oninput="$('pnm${t}').textContent=MK.pname2(MK.state,${t},this.value)"><button onclick="pen(${t},2)">2</button><button onclick="pen(${t},5)">5</button><button onclick="pen(${t},10)">10</button><datalist id="dl${t}">${((s.rosters||[])[t]||[]).map(p=>`<option value="${p.no}">${p.name} (${p.pos})</option>`).join('')}</datalist><div style="min-height:20px"><span id="pnm${t}" style="color:#FF6B70"></span></div> 
@@ -30,7 +32,7 @@ function team(t){const s=MK.state;$('t'+t).innerHTML=`<h2>${t?'Borta':'Hemma'}</
 function pen(t,m){const n=$('pn'+t).value.trim()||'?';MK.addPen(t,n,m);$('pn'+t).value=''}
 function pens(t){const s=MK.state,act=MK.activePens(s,t);$('pl'+t).innerHTML=s.pens[t].map(p=>`<div class="pen${act.includes(p)||p.min===10?'':' q'}">#${p.nr} ${MK.pname2(s,t,p.nr)} (${p.min}) <b class="tnum" style="flex:1">${MK.fmtP(MK.penLeft(s,p,t))}</b>
 <input style="width:70px" placeholder="mm:ss" onchange="const v=parse(this.value);v!=null&&MK.editPen(${t},${p.id},v)"><button onclick="MK.delPen(${t},${p.id})">✕</button></div>`).join('')}
-let sig='';function render(){const s=MK.state,k=JSON.stringify([s.gid,(s.rosters||[]).length,s.home,s.away,s.goals,s.shots,s.pens.map(x=>x.length)]);
+let sig='';function render(){const s=MK.state,k=JSON.stringify([s.short,s.swName,s.gid,(s.rosters||[]).length,s.home,s.away,s.goals,s.shots,s.pens.map(x=>x.length)]);
  if(k!==sig&&!document.activeElement.matches('input')){sig=k;team(0);team(1)}
  $('hM').textContent=s.home+' – '+s.away;$('to0').textContent=s.home;$('to1').textContent=s.away;$('clk').textContent=MK.fmtShown(s);$('clk').className='tnum'+(s.clock.running?' run':'');
  $('go').textContent=s.clock.running?'STOPP':'START';$('go').className=s.clock.running?'stop':'start';$('st').textContent=MK.pname(s.period)+(s.clock.running?' · klockan går':' · stoppad');

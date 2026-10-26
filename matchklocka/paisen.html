@@ -24,14 +24,19 @@ input{background:#111;color:#fff;border:1px solid #555;border-radius:6px;padding
 <div id="hClk" hidden><div id="hCp"></div><div id="hCk"></div><div id="hCs"></div></div></header>
 <nav><button id="tb0" onclick="tab(0)">Hemma</button><button id="tb1" onclick="tab(1)">Borta</button><button id="tb2" onclick="tab(2)">Protokoll</button></nav>
 <main id="m"></main>
+<script src="aktuell.js"></script>
 <script>
 const KEY='matchklocka_state_v1',PK='paisen_v1',$=i=>document.getElementById(i);let S=null;
 const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();
 let P;try{P=JSON.parse(localStorage.getItem(PK))}catch(e){}P=Object.assign({tab:0,on:[[],[]],extra:[[],[]],log:[],g:null},P||{});
 const sv=()=>localStorage.setItem(PK,JSON.stringify(P));
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
-const team=t=>S&&S.clock&&(S.short&&S.short[t]||(t?S.away:S.home))||(t?'Borta':'Hemma');
-function roster(t){const r=((S&&S.rosters||[])[t]||[]).map(p=>({no:String(p.no),name:p.name||'',pos:p.pos||''}));
+const A=window.AKTUELL||null;
+/* Källa: aktuell match från SpeakerApp (aktuell.js). Matchklockans laglistor används om klockan laddat en annan match (annat gid) eller om aktuell.js saknas. */
+const useMK=()=>S&&S.rosters&&S.rosters.length&&(!A||(S.gid&&String(S.gid)!==String(A.gid)));
+const live=()=>S&&S.clock&&Date.now()-(S.v||0)<6*3600e3;
+const team=t=>(live()&&(S.short&&S.short[t]||(t?S.away:S.home)))||(A&&!useMK()&&A.teams[t]&&A.teams[t].name)||(t?'Borta':'Hemma');
+function roster(t){const r=((useMK()?S.rosters:A?A.teams.map(x=>x.players):[])[t]||[]).map(p=>({no:String(p.no),name:p.name||'',pos:p.pos||''}));
  P.extra[t].forEach(n=>{if(!r.some(p=>p.no==n))r.push({no:n,name:'',pos:''})});return r}
 const isG=(t,n)=>roster(t).some(p=>p.no==n&&p.pos==='M');
 function clockNow(){const s=S,n=Date.now();if(!s||!s.clock)return{per:'',tid:'',sp:''};const c=s.clock,r=Math.max(0,c.remain-(c.running?n-c.startedAt:0)),l=s.len||{},L=(s.period==='OT'?l.OT||5:l.P||20)*60000;

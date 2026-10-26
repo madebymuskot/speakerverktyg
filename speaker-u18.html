@@ -322,7 +322,10 @@ setInterval(tick,250);})();</script>
 (()=>{const KEY='matchklocka_state_v1';let K=null;const rd=()=>{try{K=JSON.parse(localStorage.getItem(KEY))}catch(e){K=null}};rd();
 const MKP={P1:'1',P2:'2',P3:'3',OT:'OT'};
 const tix=t=>{try{const n=(t?K.away:K.home)||'',w=n.trim().split(/\s+/)[0].toLowerCase(),i=D.teams.findIndex(x=>x.name.trim().split(/\s+/)[0].toLowerCase()===w);if(i>=0)return i}catch(e){}return t};
-const evs=()=>{if(!K||!Array.isArray(K.ev))return[];if(K.gid&&D.id&&String(K.gid)!==String(D.id))return[];return K.ev};
+const fw=n=>String(n||'').trim().split(/\s+/)[0].toLowerCase(),DEF=['motståndare','hemma','borta',''];
+/* Samma match om: ingen gid i klockan, samma gid, eller lagnamnen stämmer (eller är standardnamn). Annars tydlig notis. */
+const same=()=>{if(!K)return true;if(!K.gid||!D.id||String(K.gid)===String(D.id))return true;const T=D.teams.map(t=>fw(t.name));return [K.home,K.away].every(n=>DEF.includes(fw(n))||T.includes(fw(n)))};
+const evs=()=>{if(!K||!Array.isArray(K.ev))return[];return same()?K.ev:[]};
 const byId=id=>evs().find(e=>e.id===id);
 mkDel=p=>{if(!p.ev)return false;const e=byId(p.ev);return!!(e&&e.del)};
 const pend=()=>evs().filter(e=>!e.del&&!P.some(p=>p.ev===e.id));
@@ -330,7 +333,7 @@ let CUR=null;
 const css=document.createElement('style');css.textContent='#mkpend{margin:10px 0}#mkpend .pr{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#3a2600;border:2px solid #FFB000;border-radius:10px;padding:10px 14px;margin:6px 0;font-size:18px}#mkpend .pr b{color:#FFB000}#mkpend button,#mkban button{font-size:16px;font-weight:800;padding:8px 16px;background:#FFB000;color:#000;border:0;border-radius:8px}#mkban{position:sticky;top:0;z-index:50;background:#FFB000;color:#000;font-weight:800;font-size:18px;padding:8px 14px;display:flex;gap:12px;align-items:center;border-radius:0 0 10px 10px}#mkban button{background:#000;color:#fff}tr.mkdel td{text-decoration:line-through;opacity:.55}.mkx{color:#FF6B70;font-size:12px;font-weight:700;text-decoration:none!important}.mksrc{color:#888;font-size:12px}input.mklock{background:#333!important;color:#FFB000!important}@media print{#mkpend,#mkban,.mksrc{display:none!important}}';document.head.appendChild(css);
 const desc=e=>`${e.typ==='Mål'?'MÅL':'UTVISNING'} ${NM(tix(e.t))} · Period ${MKP[e.per]||e.per} · ${e.el}${e.typ==='Utvisning'?' · '+(TL[e.lbl]||e.lbl+' min')+(e.nr?' · #'+e.nr:' · nummer saknas'):''}`;
 function lock(on){['gt','pt0','pt1'].forEach(i=>{const el=$(i);if(el){const m=on&&CUR&&(CUR.typ==='Mål'?i==='gt':i==='pt'+tix(CUR.t));el.readOnly=m;el.classList.toggle('mklock',m)}})}
-function banner(){let b=$('mkban');if(!CUR){if(b)b.remove();lock(false);return}
+function banner(){setTimeout(note);let b=$('mkban');if(!CUR){if(b)b.remove();lock(false);return}
  if(!b){b=document.createElement('div');b.id='mkban';document.body.insertBefore(b,document.querySelector('main'))}
  b.innerHTML=`<span>Från klockan: ${esc(desc(CUR))} – välj spelare och spara</span><button id="mkcan">Avbryt</button>`;$('mkcan').onclick=()=>{CUR=null;banner();render()};lock(true)}
 function pick(id){const e=byId(id);if(!e)return;CUR=e;const i=tix(e.t);PER=MKP[e.per]||PER;
@@ -349,9 +352,14 @@ const _pr=prender;prender=function(){_pr();const R=$('rtab');if(!R)return;
    else if(e&&e.end)td.insertAdjacentHTML('beforeend',` <span class="mksrc">· slut P${esc(MKP[e.end.per]||e.end.per)} ${esc(e.end.el)}</span>`)}
   else if(evs().length)td.insertAdjacentHTML('beforeend',' <span class="mksrc">(manuell, ej från klockan)</span>')});
  badge()};
-function badge(){const n=pend().length,b=$('tabs').querySelector('[data-k="'+IR+'"]');if(!b)return;let s=b.querySelector('.mkb');if(!n){if(s)s.remove();return}
+function note(){let n=$('mknote');const L=pend(),bad=K&&Array.isArray(K.ev)&&K.ev.length&&!same();
+ if(!L.length&&!bad){if(n)n.remove();return}
+ if(!n){n=document.createElement('div');n.id='mknote';n.style.cssText='position:sticky;top:0;z-index:60;cursor:pointer;font-weight:900;font-size:20px;padding:10px 16px;border-radius:0 0 10px 10px';document.body.insertBefore(n,document.querySelector('main'));n.onclick=()=>{if(!n.dataset.bad)go(IR)}}
+ if(bad){n.dataset.bad=1;n.style.background='#B00020';n.style.color='#fff';n.textContent=`Klockan har en annan match laddad (${K.home||'?'} – ${K.away||'?'}, matchnr ${K.gid}) – klockhändelser visas inte här. Ladda matchnr ${D.id} i Kontroll.`}
+ else{delete n.dataset.bad;n.style.background='#FFB000';n.style.color='#000';n.textContent=`⏱ ${L.length} händelse${L.length>1?'r':''} från klockan väntar – ${desc(L[L.length-1])} · klicka för Protokoll`;n.style.display=CUR?'none':''}}
+function badge(){note();const n=pend().length,b=$('tabs').querySelector('[data-k="'+IR+'"]');if(!b)return;let s=b.querySelector('.mkb');if(!n){if(s)s.remove();return}
  if(!s){s=document.createElement('span');s.className='mkb';s.style.cssText='background:#FFB000;color:#000;border-radius:10px;padding:0 7px;margin-left:6px;font-size:14px;font-weight:900';b.appendChild(s)}s.textContent=n}
-let sig='';const upd=()=>{const k=JSON.stringify(evs());if(k===sig)return;sig=k;if(CUR){const e=byId(CUR.id);if(!e||e.del){CUR=null;banner();toast('Händelsen togs bort i Kontroll')}}prender()};
+let sig='';const upd=()=>{const k=JSON.stringify([evs(),K&&[K.gid,K.home,K.away,(K.ev||[]).length]]);if(k===sig)return;sig=k;if(CUR){const e=byId(CUR.id);if(!e||e.del){CUR=null;banner();toast('Händelsen togs bort i Kontroll')}}prender()};
 try{const bc=new BroadcastChannel('matchklocka');bc.onmessage=e=>{K=e.data;upd()}}catch(e){}addEventListener('storage',e=>{if(e.key===KEY){rd();upd()}});
 setInterval(()=>{rd();upd()},2000);upd();})();</script>
 <script>/* Matchklocka i headern: läser matchklockans state (BroadcastChannel/localStorage). Grön när klockan går. */

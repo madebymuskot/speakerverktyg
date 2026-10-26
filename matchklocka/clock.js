@@ -97,7 +97,7 @@ MK.addPen=(t,nr,type,coin)=>{MK.commit();const s=MK.state;let prev=null;type=Str
 MK.noteDel=(t,id)=>{const s=MK.state;s.dels=(s.dels||[]).concat(t+':'+id).slice(-30)};
 MK.delPen=(t,id)=>{MK.commit();MK.noteDel(t,id);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
 MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.now()+30000};MK.save()};
-MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
+MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.homeLogo=MK.state.homeLogo;s.awayLogo=MK.state.awayLogo;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs
 MK.view=function(render){MK.init();MK.on(render);const loop=()=>{render(MK.state);requestAnimationFrame(loop)};loop()};
 MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>!p.coin&&MK.penLeft(s,p,t)>0).map(p=>{const a=MK.penRunning(s,t,p)||p.kind==='gm';

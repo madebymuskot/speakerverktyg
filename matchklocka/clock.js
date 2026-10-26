@@ -10,7 +10,7 @@ MK.LocalTransport={ // BroadcastChannel + localStorage (samma dator)
 };
 // Exempel på framtida transport: {init(onRemote){...ws.onmessage...}, load(){return null}, publish(s){ws.send(JSON.stringify(s))}}
 MK.defaults=()=>({v:0,home:'Piteå HC',away:'Motståndare',goals:[0,0],shots:[0,0],period:'P1',
-  len:{P:20,PAUS:18,PRE:60,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
+  len:{P:20,PAUS:18,PRE:60,WU:40,WUL:20,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
 MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s=null;
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
   MK.state=Object.assign(MK.defaults(),s||{});if(!MK.state.len.v18){if(MK.state.len.PAUS===15)MK.state.len.PAUS=18;MK.state.len.v18=1}MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};
@@ -92,7 +92,7 @@ MK.setShown=ms=>{const s=MK.state;MK.setTime(MK.dir(s)==='up'&&s.period!=='PAUS'
 MK.editPen=(t,id,ms)=>{MK.commit();const p=MK.state.pens[t].find(p=>p.id===id);if(p)p.left=Math.max(0,ms);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.left>0||p.kind==='gm');MK.save()};
 MK.powerbreak=on=>{if(on){MK.stop();const n=Date.now(),l=MK.state.len;MK.state.pb={start:n,endsAt:n+(l.PB||70)*1000,sigAt:n+(l.PBS??60)*1000,sig:false}}else MK.state.pb=null;MK.save()};
 MK.cd=x=>x?Math.max(0,x.endsAt-Date.now()):0;
-MK.overlay=s=>{const t=MK.cd(s.timeout),p=MK.cd(s.pb),f=MK.cd(s.pre);if(f>0)return{k:'MATCHSTART OM',v:MK.fmtP(f),pre:1};
+MK.overlay=s=>{const t=MK.cd(s.timeout),p=MK.cd(s.pb),f=MK.cd(s.pre);if(f>0){const w=MK.warm(s);return{k:'MATCHSTART OM',v:MK.fmtP(f),pre:1,w:w.txt,wph:w.ph}}
   if(t>0)return{k:'TIMEOUT '+(s.timeout.team?s.away:s.home).toUpperCase(),v:MK.fmtP(t)};if(p>0)return{k:'POWERBREAK',v:MK.fmtP(p)};return null};
 // Swehockey (CORS *): lagnamn + laglistor från /Game/LineUps/<gid>
 MK.fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/LineUps/'+gid,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
@@ -110,6 +110,8 @@ MK.pname2=(s,t,nr)=>{const p=((s.rosters||[])[t]||[]).find(p=>p.no==nr);return p
 // Automatiskt matchflöde: period slut -> paus (räknar ner) -> nästa period laddad, stoppad
 MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]?'OT':'SLUT',OT:'SLUT'})[s.period]||null;
 // "Nästa steg i tidslinjen" – används både av automatik (nedräkning når 0) och Avbryt-knappen
+// Uppvärmning (TB §1:6): startar len.WU min före matchstart, pågår len.WUL min. ph 0=före,1=pågår,2=efter
+MK.warm=s=>{const f=MK.cd(s.pre),wu=(s.len.WU??40)*60000,we=wu-(s.len.WUL??20)*60000;return f>wu?{ph:0,txt:'UPPVÄRMNING OM '+MK.fmtP(f-wu)}:f>we?{ph:1,txt:'UPPVÄRMNING PÅGÅR'}:{ph:2,txt:''}};
 MK.current=s=>MK.cd(s.pre)>0?'forematch':MK.cd(s.timeout)>0?'timeout':MK.cd(s.pb)>0?'powerbreak':s.period==='PAUS'?'paus':null;
 MK.advance=function(){const s=MK.state,c=MK.current(s);
   if(c==='forematch'){s.pre=null;MK.setPeriod('P1')}else if(c==='timeout'){s.timeout=null;MK.save()}else if(c==='powerbreak'){s.pb=null;MK.save()}

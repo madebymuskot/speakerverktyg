@@ -3,4 +3,4 @@ body{height:100vh;display:grid;place-items:center;text-align:center;overflow:hid
 #r{font-size:5vw;color:#bbb}#o{font-size:6vw;color:#FFB000;font-weight:900}body.paus #c{color:#FFB000}
 </style></head><body><div><div id="p"></div><div id="c" class="tnum"></div><div id="o"></div><div id="r"></div></div><script src="clock.js"></script><script>const $=i=>document.getElementById(i);
 MK.view(s=>{document.body.classList.toggle('paus',s.period==='PAUS');$('p').textContent=s.period==='PAUS'?'PAUS – NÄSTA PERIOD OM':MK.pname(s.period).toUpperCase();if(s.next&&s.period==='PAUS')$('p').textContent='PAUS – NÄSTA: '+s.next;if(MK.openPause(s))$('p').textContent='PAUS – VÄNTAR PÅ DOMARE · NÄSTA: OT';$('c').textContent=MK.fmtShown(s);
-const o=MK.overlay(s);$('o').textContent=o?o.k+' '+o.v:'';$('r').textContent=s.home+' '+s.goals[0]+' – '+s.goals[1]+' '+s.away})</script></body></html>
+const o=MK.overlay(s);$('o').textContent=o?(o.pre?o.w:o.k+' '+o.v):'';if(o&&o.pre){$('p').textContent='MATCHSTART OM';$('c').textContent=o.v}$('r').textContent=s.home+' '+s.goals[0]+' – '+s.goals[1]+' '+s.away})</script></body></html>

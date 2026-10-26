@@ -87,8 +87,8 @@ const bz=$('bz');bz.onpointerdown=e=>{e.preventDefault();BZ.on()};['pointerup','
 addEventListener('keydown',e=>{if((e.key==='b'||e.key==='B')&&!e.target.matches('input')&&!e.repeat)BZ.on()});addEventListener('keyup',e=>{if(e.key==='b'||e.key==='B')BZ.offMin()});
 </script><script>
 {const st=()=>{const s=MK.state,m=MK.preMode(s);if(document.activeElement!==$('mst'))$('mst').value=s.startTime||'';
-  $('preb').textContent=s.pre&&MK.cd(s.pre)>0?'Nedräkning pågår':m==='tid'?'Starta nedräkning mot '+s.startTime:'Starta nedräkning ('+(s.len.PRE||60)+' min)';$('preb').disabled=!!(s.pre&&MK.cd(s.pre)>0);
-  $('prem').textContent=m==='tid'?'räknar mot klockslaget – slutar exakt vid matchstart':(s.startTime?'starttid passerad – kör vald längd':'ingen starttid – kör vald längd')+(s.swStart&&s.startDate?' · swehockey: '+s.startDate+' '+s.swStart:'')};
+  $('preb').textContent=s.pre&&MK.cd(s.pre)>0?'Nedräkning pågår':'Starta nedräkning';$('preb').disabled=!!(s.pre&&MK.cd(s.pre)>0);
+  $('prem').textContent=m==='tid'?'räknar mot angiven matchstart':(s.startTime?'starttid passerad – kör vald längd':'ingen starttid – kör vald längd')+(s.swStart&&s.startDate?' · swehockey: '+s.startDate+' '+s.swStart:'')};
  $('mst').onchange=e=>MK.setStartTime(e.target.value);$('preb').onclick=()=>MK.preStart();setInterval(st,500);st()}
 </script><script>/* Tidsfält fylls från höger: 1→0:01, 123→1:23, 1234→12:34. Manuellt ':' fungerar fortfarande. */
 (()=>{const SEL='#tset,#mst,.pedit';document.addEventListener('input',e=>{const el=e.target;if(!el.matches||!el.matches(SEL))return;

@@ -11,8 +11,7 @@ button.on{background:#AF2E32;border-color:#fff}input{font-size:18px;padding:6px;
 <main>
 <div class="box full"><div id="clk" class="tnum">20:00</div><div id="st"></div><div id="ov"></div><div style="text-align:center">
 <button id="go" style="font-size:28px;padding:12px 40px">START</button>
-<button data-a="-60000">−1 min</button><button data-a="-1000">−1 s</button><button data-a="1000">+1 s</button><button data-a="60000">+1 min</button>
-<input id="tset" placeholder="mm:ss"><button id="tsetb">Sätt tid</button><br>
+<button id="edt">Redigera tid</button><span id="edbox" hidden style="background:#222;border:2px solid #FFB000;border-radius:8px;padding:6px;margin-left:6px"><input id="tset" style="width:120px;font-size:24px" placeholder="mm:ss"> <button id="tsave">Spara</button><button id="tcancel">Avbryt</button> <small style="color:#bbb">mm:ss, mm:ss,t eller sekunder · Enter/Esc</small></span><br>
 <span id="per"></span> | Räkna: <button id="dn">NER</button><button id="up">UPP</button> | <button id="pb">Powerbreak</button><button id="ovx">Avbryt TO/PB</button></div></div>
 <div class="box" id="t0"></div><div class="box" id="t1"></div>
 <div class="box full"><h2>Match (swehockey)</h2>Matchnummer <input id="gid" style="width:120px" placeholder="1116151"> <button id="gidb">Hämta lag</button> <span id="gmsg" style="color:#bbb"></span></div>
@@ -39,8 +38,11 @@ let sig='';function render(){const s=MK.state,k=JSON.stringify([s.gid,(s.rosters
  for(const x of['P','PAUS','OT','PB'])if(document.activeElement!==$('l'+x))$('l'+x).value=s.len[x]||90;
  if(s.clock.running&&MK.remain(s)<=0)MK.stop();}
 setInterval(()=>{if(!document.activeElement.matches('#pl0 input,#pl1 input'))render();else{$('clk').textContent=MK.fmtShown(MK.state)}},50);MK.on(()=>{sig='';render()});
-$('go').onclick=MK.toggle;document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>MK.adjust((MK.dir(MK.state)==='up'&&MK.state.period!=='PAUS'?-1:1)*+b.dataset.a));
-$('tsetb').onclick=()=>{const v=parse($('tset').value);if(v!=null)MK.setShown(v)};
+$('go').onclick=MK.toggle;const ptime=v=>{const m=String(v).trim().replace('.',',').match(/^(?:(\d+):)?(\d+)(?:,(\d))?$/);return m?((+(m[1]||0))*60+ +m[2])*1000+(+(m[3]||0))*100:null};
+const edClose=()=>{$('edbox').hidden=true;$('edt').hidden=false};
+$('edt').onclick=()=>{MK.stop();$('edt').hidden=true;$('edbox').hidden=false;const i=$('tset');i.value=MK.fmtShown(MK.state);i.focus();i.select()};
+const edSave=()=>{const v=ptime($('tset').value);if(v==null){$('tset').style.borderColor='#f00';return}$('tset').style.borderColor='';MK.setShown(v);edClose()};
+$('tsave').onclick=edSave;$('tcancel').onclick=edClose;$('tset').onkeydown=e=>{if(e.key==='Enter')edSave();else if(e.key==='Escape')edClose();e.stopPropagation()};
 document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>MK.setPeriod(b.dataset.p));
 $('dn').onclick=()=>MK.setDir('down');$('up').onclick=()=>MK.setDir('up');$('pb').onclick=()=>MK.powerbreak(true);$('ovx').onclick=()=>{MK.state.timeout=null;MK.powerbreak(false)};
 for(const x of['P','PAUS','OT','PB'])$('l'+x).onchange=e=>{MK.state.len[x]=+e.target.value;MK.save()};

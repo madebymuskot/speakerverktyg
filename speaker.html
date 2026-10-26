@@ -262,10 +262,10 @@ const SEEN='fullt_seen';const seen=()=>{try{return JSON.parse(localStorage.getIt
 const mark=k=>{const o=seen();o[k]=Date.now();for(const x in o)if(Date.now()-o[x]>12*3600e3)delete o[x];localStorage.setItem(SEEN,JSON.stringify(o))};
 const box=document.createElement('div');box.id='fullt';box.hidden=true;
 box.style.cssText='background:#FFB000;color:#000;border:4px solid #000;border-radius:14px;padding:16px 26px;font:800 34px system-ui,sans-serif;box-shadow:0 8px 40px #000c;text-align:center;min-width:420px';
-box.innerHTML='<div id="fulltT"></div><div id="fulltS" style="font-size:20px;font-weight:600;margin-top:4px"></div><div style="margin-top:10px;display:flex;gap:14px;justify-content:center;align-items:center;font-size:15px;font-weight:600"><button id="fulltOk" style="font-size:22px;font-weight:800;padding:6px 26px">OK</button><label><input type="checkbox" id="fulltSnd"> ljud</label></div>';
-let SP=document.getElementById('spop');if(!SP){SP=document.createElement('div');SP.id='spop';SP.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:center';document.body.appendChild(SP)}SP.appendChild(box);const $f=i=>document.getElementById(i);$f('fulltSnd').checked=localStorage.getItem('fullt_snd')==='1';$f('fulltSnd').onchange=e=>localStorage.setItem('fullt_snd',e.target.checked?'1':'0');
+box.innerHTML='<div id="fulltT"></div><div id="fulltS" style="font-size:20px;font-weight:600;margin-top:4px"></div><div style="margin-top:10px;display:flex;gap:14px;justify-content:center;align-items:center;font-size:15px;font-weight:600"><button id="fulltOk" style="font-size:22px;font-weight:800;padding:6px 26px">OK</button></div>';
+let SP=document.getElementById('spop');if(!SP){SP=document.createElement('div');SP.id='spop';SP.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:center';document.body.appendChild(SP)}SP.appendChild(box);const $f=i=>document.getElementById(i);
 let cur=null;const close=()=>{if(cur)mark(cur.k);cur=null;box.hidden=true};$f('fulltOk').onclick=close;
-const beep=()=>{if(localStorage.getItem('fullt_snd')!=='1')return;try{const a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;g.gain.value=.2;o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.25)}catch(e){}};
+
 const tname=(s,t)=>{const n=(t?s.away:s.home)||'';try{const w=n.trim().split(/\s+/)[0].toLowerCase();const i=D.teams.findIndex(x=>x.name.trim().split(/\s+/)[0].toLowerCase()===w);if(i>=0)return{lab:NM(i),i}}catch(e){}return{lab:n.trim().split(/\s+/)[0]||(t?'Bortalaget':'Hemmalaget'),i:-1}};
 const pname=(i,nr)=>{try{const p=D.teams[i].players.find(x=>String(x.no)===String(nr));return p?' '+p.first+' '+p.last:''}catch(e){return''}};
 const tick=()=>{const s=S;if(!s||!s.clock||!s.pens||Date.now()-(s.v||0)>6*3600e3||!/^(P\d|OT)$/.test(s.period)){if(cur&&!cur.end)close();return}
@@ -274,16 +274,16 @@ const tick=()=>{const s=S;if(!s||!s.clock||!s.pens||Date.now()-(s.v||0)>6*3600e3
   if(!p&&(s.dels||[]).includes(cur.t+':'+cur.id)){cur=null;box.hidden=true;return} // kryssad (✕) eller mål – försvinner i alla faser
   if(!cur.end){if(p&&p.coin){cur=null;box.hidden=true;return}
    if(!p&&cur.last>1000){cur=null;box.hidden=true;return} // borttagen tidigt (mål/radering)
-   if(p&&left>0){cur.last=left;$f('fulltS').textContent=Math.ceil(left/1000)+' s kvar · '+cur.who;return}
-   cur.end=true;$f('fulltT').textContent=cur.restore?cur.lab+' fulltaligt!':cur.who.split(' ')[0]+' ut – '+cur.lab+' fortf. i numerärt underläge';$f('fulltS').textContent=cur.who+(cur.restore?' tillbaka på isen':' ut ur utvisningsbåset');$f('fulltT').style.fontSize='52px';box.style.background='#2ecc40';beep()}
+   if(p&&left>0){cur.last=left;$f('fulltS').textContent=cur.who;return}
+   cur.end=true;$f('fulltT').textContent=cur.restore?cur.lab+' fulltaligt!':cur.who.split(' ')[0]+' ut – '+cur.lab+' fortf. i numerärt underläge';$f('fulltS').textContent=cur.who;$f('fulltT').style.fontSize='52px';box.style.background='#2ecc40'}
   return}
  const sk=seen(),sid=s.gid||'x';
  for(const t of[0,1]){const ps=s.pens[t]||[];const r=sim(ps,e);for(const p of r.slot){const left=r.L.get(p.id);if(!(left>0&&left<=10000))continue;
    const k=sid+':'+t+':'+p.id+':'+p.nr;if(sk[k])continue;
    const after=sim(ps,e+left+1).slot.length,restore=after<r.slot.length;const tn=tname(s,t);
    cur={k,t,id:p.id,lab:tn.lab,who:'#'+p.nr+pname(tn.i,p.nr),last:left,end:false,restore};$f('fulltT').style.fontSize='';mark(k);
-   $f('fulltT').textContent=tn.lab+(restore?' fulltaligt om 10 s':' – #'+p.nr+' ut om 10 s');$f('fulltS').textContent=Math.ceil(left/1000)+' s kvar · '+cur.who;
-   box.style.background='#FFB000';box.hidden=false;beep();return}}};
+   $f('fulltT').textContent=tn.lab+(restore?' fulltaligt om 10 s':' – #'+p.nr+' ut om 10 s');$f('fulltS').textContent=cur.who;
+   box.style.background='#FFB000';box.hidden=false;return}}};
 setInterval(tick,250);})();</script><script>/* Tid kvar-påminnelse: P1/P2 1 min, P3 2 min (räknar på kvarvarande periodtid, upp- eller nedräkning). Visas inte om tiden redigeras förbi. */
 (()=>{const KEY='matchklocka_state_v1';let S=null;const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();
 try{const bc=new BroadcastChannel('matchklocka');bc.onmessage=e=>{S=e.data}}catch(e){}addEventListener('storage',e=>{if(e.key===KEY)rd()});

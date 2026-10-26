@@ -54,7 +54,18 @@ MK.start=()=>{const s=MK.state;if(s.clock.running||s.clock.remain<=0)return;s.cl
 MK.stop=()=>{const s=MK.state;if(!s.clock.running)return;MK.commit();s.clock.running=false;s.lastStop={period:s.period,remain:s.clock.remain,len:MK.periodLen(s.period),at:Date.now()};MK.save()};
 MK.toggle=()=>MK.state.clock.running?MK.stop():MK.start();
 MK.adjust=ms=>{MK.commit();const s=MK.state,max=MK.periodLen(s.period);s.clock.remain=Math.min(max,Math.max(0,s.clock.remain+ms));MK.save()};
-MK.setTime=ms=>{MK.commit();MK.state.clock.remain=Math.max(0,ms);MK.save()};
+MK.setTime=ms=>{MK.commit();const s=MK.state,old=s.clock.remain;s.clock.remain=Math.max(0,ms);
+  if(/^(P\d|OT)$/.test(s.period)&&!MK.current(s))MK.shiftPens(old-s.clock.remain);MK.save()};
+// Utvisningar lagras som återstående SPELTID (left, ms) och räknas ned med spelklockans förlupna tid (MK.commit/penSim),
+// aldrig väggklocka. Vid redigerad matchtid flyttas de med samma delta d (förlupen speltid, + = framåt):
+//  framåt: samma simulering som när klockan går (kö, 2+2-delar, slot som frigörs, kvittade -> 'done').
+//  bakåt: pågående (avtjänas nu, inkl. kvittade och 'done' kvittade) får +|d|, max full längd. Är |d| större än vad en
+//  pågående del hunnit avtjäna återställs inte redan avslutade/borttagna delar (de finns inte kvar) – kladdas till full längd.
+MK.fullLen=p=>p.min*60000;
+MK.shiftPens=d=>{const s=MK.state;if(!d)return;for(const t of[0,1]){
+  if(d>0){const r=MK.penSim(s,t,d);s.pens[t].forEach(p=>{if(p.done)return;p.left=r.L.get(p.id);if(r.gone.has(p.id)&&p.coin){p.left=0;p.done=true}});
+    s.pens[t]=s.pens[t].filter(p=>p.done||p.kind==='gm'||!r.gone.has(p.id))}
+  else{const run=MK.penSim(s,t,0).run;s.pens[t].forEach(p=>{if(run.includes(p)||(p.done&&p.coin)){p.left=Math.min(MK.fullLen(p),Math.max(0,p.left-d));if(p.done&&p.left>0)p.done=false}})}}};
 MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT:l.P)*60000};
 // Förinställningar (min). Källor: SIF TB 2026/27 §1:6 (3x20, periodpaus 18 förbundsserie / 15 distrikt-region), §5:7 D (OT max 5 min, 3+1),
 // SIF SB 2026/27 (U18/U19/U20 SM-slutspel: OT max 10 min, paus före OT max 3), IIHF R77.2 (paus 15), R84.1 (OT 5, paus 3).

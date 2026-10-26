@@ -250,4 +250,61 @@ const get=(force)=>{if(!D.gid){st.textContent='Inget matchnummer';return}st.text
   st.textContent=n?'swehockey: '+fmt(n)+' · '+now():'Ej publicerad än på swehockey · '+now()}).catch(()=>st.textContent='Kunde inte hämta från swehockey')};
 document.getElementById('pubh').onclick=()=>get(true);get(false);
 if(typeof go==='function'){const g0=go;go=function(k){g0(k);if(typeof V!=='undefined'&&V==='R')get(false)}}
-})();</script></body></html>
+})();</script><script>/* Fulltaligt-påminnelse: läser matchklockans state (BroadcastChannel/localStorage). Popup 10 s före en räknande utvisning tar slut och spelare återvänder. No-op utan klocka. */
+(()=>{const KEY='matchklocka_state_v1';let S=null;const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();
+try{const bc=new BroadcastChannel('matchklocka');bc.onmessage=e=>{S=e.data}}catch(e){}addEventListener('storage',e=>{if(e.key===KEY)rd()});
+const counts=p=>(p.kind==='min'||p.kind==='maj')&&!p.coin;
+const sim=(ps,e)=>{const L=new Map(ps.map(p=>[p.id,p.left])),gone=new Set(ps.filter(p=>p.done).map(p=>p.id));let slot=[];
+ for(let g=0;g<50;g++){const el=ps.filter(p=>!p.done&&!gone.has(p.id)&&(!p.after||gone.has(p.after)||!ps.some(q=>q.id===p.after)));
+  slot=el.filter(counts).slice(0,2);const run=slot.concat(el.filter(p=>!counts(p)&&p.kind!=='gm'));if(e<=0||!run.length)break;
+  const dt=Math.min(e,...run.map(p=>L.get(p.id)));run.forEach(p=>{L.set(p.id,L.get(p.id)-dt);if(L.get(p.id)<=0)gone.add(p.id)});e-=dt}return{L,slot}};
+const SEEN='fullt_seen';const seen=()=>{try{return JSON.parse(localStorage.getItem(SEEN))||{}}catch(e){return{}}};
+const mark=k=>{const o=seen();o[k]=Date.now();for(const x in o)if(Date.now()-o[x]>12*3600e3)delete o[x];localStorage.setItem(SEEN,JSON.stringify(o))};
+const box=document.createElement('div');box.id='fullt';box.hidden=true;
+box.style.cssText='background:#FFB000;color:#000;border:4px solid #000;border-radius:14px;padding:16px 26px;font:800 34px system-ui,sans-serif;box-shadow:0 8px 40px #000c;text-align:center;min-width:420px';
+box.innerHTML='<div id="fulltT"></div><div id="fulltS" style="font-size:20px;font-weight:600;margin-top:4px"></div><div style="margin-top:10px;display:flex;gap:14px;justify-content:center;align-items:center;font-size:15px;font-weight:600"><button id="fulltOk" style="font-size:22px;font-weight:800;padding:6px 26px">OK</button><label><input type="checkbox" id="fulltSnd"> ljud</label></div>';
+let SP=document.getElementById('spop');if(!SP){SP=document.createElement('div');SP.id='spop';SP.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:center';document.body.appendChild(SP)}SP.appendChild(box);const $f=i=>document.getElementById(i);$f('fulltSnd').checked=localStorage.getItem('fullt_snd')==='1';$f('fulltSnd').onchange=e=>localStorage.setItem('fullt_snd',e.target.checked?'1':'0');
+let cur=null;const close=()=>{if(cur)mark(cur.k);cur=null;box.hidden=true};$f('fulltOk').onclick=close;
+const beep=()=>{if(localStorage.getItem('fullt_snd')!=='1')return;try{const a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;g.gain.value=.2;o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.25)}catch(e){}};
+const tname=(s,t)=>{const n=(t?s.away:s.home)||'';try{const w=n.trim().split(/\s+/)[0].toLowerCase();const i=D.teams.findIndex(x=>x.name.trim().split(/\s+/)[0].toLowerCase()===w);if(i>=0)return{lab:NM(i),i}}catch(e){}return{lab:n.trim().split(/\s+/)[0]||(t?'Bortalaget':'Hemmalaget'),i:-1}};
+const pname=(i,nr)=>{try{const p=D.teams[i].players.find(x=>String(x.no)===String(nr));return p?' '+p.first+' '+p.last:''}catch(e){return''}};
+const tick=()=>{const s=S;if(!s||!s.clock||!s.pens||Date.now()-(s.v||0)>6*3600e3||!/^(P\d|OT)$/.test(s.period)){if(cur&&!cur.end)close();return}
+ const e=s.clock.running?Date.now()-s.clock.startedAt:0;
+ if(cur){const ps=s.pens[cur.t]||[],p=ps.find(x=>x.id===cur.id);let left=p?sim(ps,e).L.get(p.id):null;
+  if(!cur.end){if(p&&p.coin){cur=null;box.hidden=true;return}
+   if(!p&&cur.last>1000){cur=null;box.hidden=true;return} // borttagen tidigt (mål/radering)
+   if(p&&left>0){cur.last=left;$f('fulltS').textContent=Math.ceil(left/1000)+' s kvar · '+cur.who;return}
+   cur.end=true;$f('fulltT').textContent=cur.lab+' FULLTALIGT – säg nu';$f('fulltS').textContent=cur.who+' ut';box.style.background='#2ecc40';beep()}
+  return}
+ const sk=seen(),sid=s.gid||'x';
+ for(const t of[0,1]){const ps=s.pens[t]||[];const r=sim(ps,e);for(const p of r.slot){const left=r.L.get(p.id);if(!(left>0&&left<=10000))continue;
+   const k=sid+':'+t+':'+p.id+':'+p.nr;if(sk[k])continue;
+   const after=sim(ps,e+left+1).slot.length,restore=after<r.slot.length;const tn=tname(s,t);
+   cur={k,t,id:p.id,lab:tn.lab,who:'#'+p.nr+pname(tn.i,p.nr),last:left,end:false};mark(k);
+   $f('fulltT').textContent=tn.lab+(restore?' fulltaligt om 10 s':' – #'+p.nr+' ut om 10 s');$f('fulltS').textContent=Math.ceil(left/1000)+' s kvar · '+cur.who;
+   box.style.background='#FFB000';box.hidden=false;beep();return}}};
+setInterval(tick,250);})();</script><script>/* Tid kvar-påminnelse: P1/P2 1 min, P3 2 min (räknar på kvarvarande periodtid, upp- eller nedräkning). Visas inte om tiden redigeras förbi. */
+(()=>{const KEY='matchklocka_state_v1';let S=null;const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();
+try{const bc=new BroadcastChannel('matchklocka');bc.onmessage=e=>{S=e.data}}catch(e){}addEventListener('storage',e=>{if(e.key===KEY)rd()});
+let SP=document.getElementById('spop');if(!SP){SP=document.createElement('div');SP.id='spop';SP.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:center';document.body.appendChild(SP)}
+const box=document.createElement('div');box.id='tleft';box.hidden=true;
+box.style.cssText='background:#FFB000;color:#000;border:4px solid #000;border-radius:14px;padding:16px 26px;font:800 34px system-ui,sans-serif;box-shadow:0 8px 40px #000c;text-align:center;min-width:420px';
+box.innerHTML='<div id="tleftT"></div><div id="tleftS" style="font-size:20px;font-weight:600;margin-top:4px"></div><div style="margin-top:10px"><button id="tleftOk" style="font-size:22px;font-weight:800;padding:6px 26px">OK</button></div>';
+SP.appendChild(box);const $t=i=>document.getElementById(i);
+const SEEN='tleft_seen';const seen=()=>{try{return JSON.parse(localStorage.getItem(SEEN))||{}}catch(e){return{}}};
+const mark=k=>{const o=seen();o[k]=Date.now();for(const x in o)if(Date.now()-o[x]>12*3600e3)delete o[x];localStorage.setItem(SEEN,JSON.stringify(o))};
+let cur=null,prev=null;$t('tleftOk').onclick=()=>{cur=null;box.hidden=true};
+const PN={P1:1,P2:2,P3:3};
+const tick=()=>{const s=S;if(!s||!s.clock||Date.now()-(s.v||0)>6*3600e3||!PN[s.period]){prev=null;if(cur){cur=null;box.hidden=true}return}
+ const rem=Math.max(0,s.clock.remain-(s.clock.running?Date.now()-s.clock.startedAt:0)),key=(s.gid||'x')+':'+s.period+':'+(s.v0||'');
+ const T=s.period==='P3'?120000:60000,W=T+20000,txt=s.period==='P3'?'2 minuter':'1 minut';
+ if(cur&&cur.p!==s.period){cur=null;box.hidden=true}
+ if(cur&&!cur.now&&rem<=T){cur.now=true;$t('tleftT').textContent=txt+' kvar – säg nu';$t('tleftS').textContent='Period '+PN[s.period];box.style.background='#2ecc40'}
+ if(cur&&!cur.now&&rem>W+3000){cur=null;box.hidden=true}
+ const k=key+':'+s.period;
+ if(!cur&&prev&&prev.p===s.period&&prev.r>W&&rem<=W&&rem>T&&prev.r-rem<3000&&!seen()[k]){mark(k);cur={p:s.period,now:false};
+  $t('tleftT').textContent='Snart: '+txt+' kvar av period '+PN[s.period];$t('tleftS').textContent='säg vid '+(T/60000)+':00';box.style.background='#FFB000';box.hidden=false}
+ if(cur&&!cur.now)$t('tleftS').textContent=Math.ceil((rem-T)/1000)+' s till '+(T/60000)+':00';
+ prev={p:s.period,r:rem}};
+setInterval(tick,250);})();</script>
+</body></html>

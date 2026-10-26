@@ -10,14 +10,14 @@ MK.LocalTransport={ // BroadcastChannel + localStorage (samma dator)
 };
 // Exempel på framtida transport: {init(onRemote){...ws.onmessage...}, load(){return null}, publish(s){ws.send(JSON.stringify(s))}}
 MK.defaults=()=>({v:0,home:'Piteå HC',away:'Motståndare',goals:[0,0],shots:[0,0],period:'P1',
-  len:{P:20,PAUS:18,PRE:60,WU:40,WUL:20,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1});
+  len:{P:20,PAUS:18,PRE:60,WU:40,WUL:20,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1,ev:[]});
 MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s=null;
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
   MK.state=Object.assign(MK.defaults(),s||{});if(!MK.state.len.v18){if(MK.state.len.PAUS===15)MK.state.len.PAUS=18;MK.state.len.v18=1}MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};
 MK.on=f=>MK.listeners.push(f);MK.emit=()=>MK.listeners.forEach(f=>f(MK.state));
 MK.shotSync=s=>{const P=/^(P[1-9]|OT\d*)$/;if(!P.test(s.period))return;const o=s.shotPer||'P1';if(o===s.period)return;s.shotsBy=s.shotsBy||{};s.shotsBy[o]=s.shots.slice();s.shots=(s.shotsBy[s.period]||[0,0]).slice();s.shotPer=s.period};
 MK.shotTot=(s,t)=>{const b=s.shotsBy||{},o=s.shotPer||'P1';let n=s.shots[t];for(const k in b)if(k!==o)n+=b[k][t];return n};
-MK.save=function(){MK.state.v=Date.now();MK.shotSync(MK.state);MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
+MK.save=function(){MK.state.v=Date.now();try{MK.evSync(MK.state)}catch(e){};MK.shotSync(MK.state);MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
 // Tidsberäkning (Date.now-baserad, ingen intervalldrift)
 MK.elapsed=s=>s.clock.running?Date.now()-s.clock.startedAt:0;
 MK.remain=s=>Math.max(0,s.clock.remain-MK.elapsed(s));
@@ -87,17 +87,26 @@ MK.setPeriod=p=>{MK.commit();const s=MK.state;s.openSince=null;s.clock.running=f
 // Mål (R16.2/R17.2): om det insläppande laget är i numerärt underläge (R16.2 "short-handed") avslutas det räknande
 // mindre straffet med minst tid kvar. 5 min (R20.2), 10 min (R22) och samtidiga (R19) avslutas aldrig av mål.
 // Dubbel 2+2: bara pågående del avslutas (andra delen startar då direkt). 2+10: 10:an startar direkt (R22.3).
-MK.goal=(t,d)=>{MK.commit();const s=MK.state;s.goals[t]=Math.max(0,s.goals[t]+d);
+/* Händelser (källa till sanning för MÅL och UTVISNING): s.ev=[{id,typ:'Mål'|'Utvisning',t,per,el,rem,ts,del?,nr?,lbl?,min?,pids?,end?}] */
+MK.evT=(s,rem)=>{const L=(s.period==='OT'?s.len.OT||5:s.len.P||20)*60000,f=ms=>{const x=Math.round(Math.max(0,ms)/1000);return String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0')};rem=rem==null?MK.remain(s):rem;return{per:s.period,el:f(L-rem),rem:f(rem)}};
+MK.evAdd=(s,o)=>{s.ev=s.ev||[];const e=Object.assign({id:o.typ[0]+Date.now().toString(36)+Math.random().toString(36).slice(2,5),ts:Date.now()},MK.evT(s),o);s.ev.push(e);return e};
+MK.evSync=s=>{(s.ev||[]).forEach(e=>{if(e.typ!=='Utvisning'||e.del||e.end||!e.pids)return;const A=s.pens[e.t]||[];
+  if(e.pids.some(id=>A.some(p=>p.id===id&&!p.done&&MK.penLeft(s,p,e.t)>0)))return;
+  let at=null;((s.pgone||[])[e.t]||[]).forEach(g=>{if(e.pids.includes(g.p.id)&&g.per===s.period)at=at==null?g.at:Math.min(at,g.at)});
+  e.end=MK.evT(s,at==null?MK.remain(s):at)})};
+MK.goal=(t,d)=>{MK.commit();const s=MK.state;if(d<0&&s.goals[t]<=0)return;s.goals[t]=Math.max(0,s.goals[t]+d);
+  if(d>0)MK.evAdd(s,{typ:'Mål',t});else{const g=(s.ev||[]).filter(e=>e.typ==='Mål'&&e.t===t&&!e.del).pop();if(g){g.del=1;g.delTs=Date.now()}}
   if(d>0){const o=1-t,st=MK.strength(s);
     if(st&&st.pp===t){const two=MK.activePens(s,o).filter(p=>p.kind==='min').sort((a,b)=>a.left-b.left)[0];if(two){MK.noteDel(o,two.id);s.pens[o]=s.pens[o].filter(p=>p!==two)}}}
   MK.save()};
 MK.shot=(t,d)=>{MK.state.shots[t]=Math.max(0,MK.state.shots[t]+d);MK.save()};
 MK.PENTYPES={'2':[[2,'min']],'2+2':[[2,'min'],[2,'min']],'5':[[5,'maj']],'10':[[10,'mis']],'2+10':[[2,'min'],[10,'mis']],'5+20':[[5,'maj'],[20,'gm']]};
-MK.addPen=(t,nr,type,coin)=>{MK.commit();const s=MK.state;let prev=null;type=String(type);
+MK.addPen=(t,nr,type,coin)=>{MK.commit();const s=MK.state;let prev=null;const ids=[];type=String(type);
   for(const[m,kind]of MK.PENTYPES[type]||[[+type,'min']]){const p={id:s.pid++,nr,min:m,kind,left:m*60000,coin:!!coin&&kind!=='mis'&&kind!=='gm',after:prev,lbl:type};
-    if(prev){const i=s.pens[t].findIndex(q=>q.id===prev);s.pens[t].splice(i+1,0,p)}else s.pens[t].push(p);prev=p.id}MK.save()};
+    if(prev){const i=s.pens[t].findIndex(q=>q.id===prev);s.pens[t].splice(i+1,0,p)}else s.pens[t].push(p);ids.push(p.id);prev=p.id}
+  const PM={'2':2,'2+2':4,'5':5,'10':10,'2+10':12,'5+20':25};MK.evAdd(s,{typ:'Utvisning',t,nr:String(nr||'').replace(/\?/g,''),lbl:type,min:PM[type]||+type||null,pids:ids,coin:!!coin});MK.save()};
 MK.noteDel=(t,id)=>{const s=MK.state;s.dels=(s.dels||[]).concat(t+':'+id).slice(-30)};
-MK.delPen=(t,id)=>{MK.commit();MK.noteDel(t,id);MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
+MK.delPen=(t,id)=>{MK.commit();MK.noteDel(t,id);{const s=MK.state,e=(s.ev||[]).find(e=>e.pids&&e.pids.includes(id)&&!e.del&&!e.end);if(e&&e.pids.every(i=>{const p=s.pens[t].find(q=>q.id===i);return !p||p.left>=MK.fullLen(p)})){e.del=1;e.delTs=Date.now()}}MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
 MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.now()+30000};MK.save()};
 MK.reset=()=>{const s=MK.defaults();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.homeLogo=MK.state.homeLogo;s.awayLogo=MK.state.awayLogo;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs

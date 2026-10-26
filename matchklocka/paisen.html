@@ -62,7 +62,7 @@ function edit(id){const e=P.log.find(e=>e.id===id);if(!e)return;const v=prompt('
  const h=prompt('Hemma på isen (nr med mellanslag)',e.h.join(' '));if(h!=null)e.h=h.split(/[\s,]+/).filter(Boolean);const b=prompt('Borta på isen',e.b.join(' '));if(b!=null)e.b=b.split(/[\s,]+/).filter(Boolean);sv();render()}
 const nm=(t,n)=>{const p=roster(t).find(p=>p.no==n);return n+'.'+(p&&p.name?' '+p.name:'')};
 const plist=(t,a)=>a.length?`<small class="tl">${esc(team(t))}</small>`+a.map(n=>`<div>${esc(nm(t,n))}</div>`).join(''):'<small class="tl">'+esc(team(t))+'</small><div>–</div>';
-const score=()=>{const g=[0,0],m={};P.log.forEach(e=>{if(e.type==='Mål'&&(e.t===0||e.t===1)){g[e.t]++;m[e.id]=g[0]+'–'+g[1]}});return m};
+const score=()=>{const g=[0,0],m={};P.log.forEach(e=>{if(e.type==='Mål'&&!e.del&&(e.t===0||e.t===1)){g[e.t]++;m[e.id]=g[0]+'–'+g[1]}});return m};
 function csv(){const SC=score();const q=x=>'"'+String(x).replace(/"/g,'""')+'"';const rows=[['Händelse','Ställning','Lag','Period','Spelat','Kvar','Klockslag','Hemma på isen','Borta på isen']].concat(P.log.map(e=>[e.type,SC[e.id]||'',e.team,e.per,e.sp,e.tid,e.ts,e.h.map(n=>nm(0,n)).join(', '),e.b.map(n=>nm(1,n)).join(', ')]));
  const b=new Blob(['\ufeff'+rows.map(r=>r.map(q).join(';')).join('\r\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='paisen-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
 function clr(){if(confirm('Rensa hela protokollet?')){P.log=[];sv();render()}}
@@ -77,11 +77,19 @@ function render(){[0,1].forEach(i=>{const b=$('tb'+i);b.classList.remove('kR','k
   <div class="bar" style="margin:14px 0 0"><span id="cnt" class="${warn?'warn':''}">På isen: <span class="${warn?'':'oi'}">${on.length}</span>${warn?' – för många!':''}</span></div>
   ${grp.map(([h,l])=>`<h2>${h}</h2><div class="grid">${l.map(p=>circ(t,p)).join('')}</div>`).join('')||'<p style="color:#999">Ingen laglista från matchklockan – lägg till nummer nedan.</p>'}
   <h2>Lägg till nummer</h2><div class="bar"><input id="add${t}" inputmode="numeric" maxlength="2" placeholder="Nr" onkeydown="if(event.key==='Enter')addNo(${t})"><button class="sm" onclick="addNo(${t})">Lägg till</button>${P.extra[t].map(n=>`<button class="sm" onclick="rmNo(${t},'${n}')">${esc(n)} ✕</button>`).join('')}</div>`}
- else{const SC=score();m.innerHTML=`<h2>Protokoll</h2><table><tr><th>Händelse</th><th>Per</th><th>Spelat</th><th>På isen</th><th></th><th class="np"></th></tr>${P.log.slice().reverse().map(e=>`<tr><td>${SC[e.id]?`<span class="sc">${SC[e.id]}</span> `:''}<b>${esc(e.type)}</b> ${esc(e.team)}${e.auto?' <small style="color:#999">(klocka)</small>':''}</td><td>${esc(e.per)}</td><td class="oi">${esc(e.sp)}</td><td class="${kc(0)}">${plist(0,e.h)}</td><td class="${kc(1)}">${plist(1,e.b)}</td><td class="np"><button onclick="edit(${e.id})">Ändra</button><button onclick="del(${e.id})">✕</button></td></tr>`).join('')||'<tr><td colspan=6 style="color:#999">Inga händelser ännu</td></tr>'}</table>
+ else{const SC=score();m.innerHTML=`<h2>Protokoll</h2><table><tr><th>Händelse</th><th>Per</th><th>Spelat</th><th>På isen</th><th></th><th class="np"></th></tr>${P.log.slice().reverse().map(e=>`<tr><td>${SC[e.id]?`<span class="sc">${SC[e.id]}</span> `:''}<b>${esc(e.type)}</b> ${esc(e.team)}${e.auto?' <small style="color:#999">(klocka'+(e.kt?' '+esc(e.kt):'')+')</small>':''}${e.del?' <small style="color:#FF6B70;font-weight:700">Borttaget i Kontroll</small>':''}</td><td>${esc(e.per)}</td><td class="oi">${esc(e.sp)}</td><td class="${kc(0)}">${plist(0,e.h)}</td><td class="${kc(1)}">${plist(1,e.b)}</td><td class="np"><button onclick="edit(${e.id})">Ändra</button><button onclick="del(${e.id})">✕</button></td></tr>`).join('')||'<tr><td colspan=6 style="color:#999">Inga händelser ännu</td></tr>'}</table>
  <div class="bar" style="margin-top:14px"><button class="sm" onclick="csv()">Ladda ner CSV</button><button class="sm" onclick="print()">Skriv ut</button><button class="sm rd" onclick="clr()">Rensa protokoll</button></div>`}}
 /* Auto-logg: när matchklockan registrerar ett mål loggas det om inget manuellt Mål för laget gjorts senaste 30 s */
-let rk='';function upd(){if(!S||!S.goals)return;const g=S.goals;if(!P.g){P.g=[...g];sv()}
- [0,1].forEach(t=>{if(g[t]>P.g[t]){const rec=P.log.some(e=>e.type==='Mål'&&e.t===t&&Date.now()-e.id<30000);P.g[t]=g[t];sv();if(!rec){log('Mål',t);P.log[P.log.length-1].auto=1;sv();render()}}else if(g[t]<P.g[t]){P.g[t]=g[t];sv()}});
+let rk='';const T0=Date.now();function upd(){if(!S||!S.goals)return;const g=S.goals;if(!P.g){P.g=[...g];sv()}
+ if(Array.isArray(S.ev)){/* Kontrollens händelse-id: varje mål länkas till sitt ev-id (ingen dubblett vid omladdning) */
+  if(!P.seen){P.seen=S.ev.filter(e=>e.ts<T0).map(e=>e.id);sv()}let ch=0;
+  S.ev.filter(e=>e.typ==='Mål').forEach(e=>{const L=P.log.find(x=>x.ev===e.id);
+   if(L){if(!!e.del!==!!L.del){L.del=e.del?1:0;ch=1}return}
+   if(e.del||P.seen.includes(e.id))return;P.seen.push(e.id);ch=1;
+   const m=P.log.slice().reverse().find(x=>x.type==='Mål'&&x.t===e.t&&!x.ev&&Date.now()-x.id<30000);
+   if(m)m.ev=e.id;else{log('Mål',e.t);const n=P.log[P.log.length-1];n.auto=1;n.ev=e.id;n.kt=e.el}});
+  P.g=[...g];if(ch){sv();render()}}
+ else [0,1].forEach(t=>{if(g[t]>P.g[t]){const rec=P.log.some(e=>e.type==='Mål'&&e.t===t&&Date.now()-e.id<30000);P.g[t]=g[t];sv();if(!rec){log('Mål',t);P.log[P.log.length-1].auto=1;sv();render()}}else if(g[t]<P.g[t]){P.g[t]=g[t];sv()}});
  const k=JSON.stringify([S.home,S.away,S.short,(S.rosters||[]).map(r=>r.length)]);if(k!==rk){rk=k;render()}}
 try{new BroadcastChannel('matchklocka').addEventListener('message',e=>{S=e.data;upd()})}catch(e){}
 addEventListener('storage',e=>{if(e.key===KEY){rd();upd()}});render();upd();

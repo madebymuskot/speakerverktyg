@@ -159,12 +159,13 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&(e.key==='Ent
 const PO=p=>{const i=PL.indexOf(p==='FÖ'?'OT':p);return i<0?99:i};
 function sorted(){return P.map((e,i)=>({e,i})).sort((a,b)=>PO(a.e.per)-PO(b.e.per)||tsec(a.e.tid)-tsec(b.e.tid)||a.i-b.i).map(x=>x.e)}
 const pnm=p=>p?`#${p.no}${p.name?' '+p.name:''}`:'';
-function rows(){const sc=D.teams.map(()=>0);return sorted().map(e=>{let st='';if(e.typ=='Mål'){sc[e.lag]++;st=sc.join('–')}
+var mkDel=e=>false;
+function rows(){const sc=D.teams.map(()=>0);return sorted().map(e=>{let st='';if(e.typ=='Mål'&&!mkDel(e)){sc[e.lag]++;st=sc.join('–')}
  const det=e.typ=='Mål'?pnm(e.sc)+(e.a1||e.a2?' (ass. '+[e.a1,e.a2].filter(Boolean).map(pnm).join(', ')+')':''):pnm(e.pl)+(e.min?' · '+e.min:'')+(e.pt?' · '+e.pt:'');
  return{e,st,det}})}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function mskt(){const el=$('mskt');if(!el)return;const PN=p=>p==='FÖ'?'OT':p,PT={'1':'1:a perioden','2':'2:a perioden','3':'3:e perioden','OT':'Övertid'};
- const G=sorted().filter(e=>e.typ=='Mål'&&e.sc);let h='<h2>Målskyttar per period</h2>';
+ const G=sorted().filter(e=>e.typ=='Mål'&&e.sc&&!mkDel(e));let h='<h2>Målskyttar per period</h2>';
  if(!G.length){el.innerHTML=h+'<div class="mn">Inga mål registrerade än.</div>';return}
  const lastI=Math.max(...P.map(e=>PO(e.per)).filter(i=>i<99));
  PL.forEach((p,pi)=>{const g=G.filter(e=>PN(e.per)===p);
@@ -174,7 +175,7 @@ function mskt(){const el=$('mskt');if(!el)return;const PN=p=>p==='FÖ'?'OT':p,PT
   D.teams.forEach((t,i)=>{const m=new Map();g.filter(e=>e.lag==i).forEach(e=>{const k=pnm(e.sc);m.set(k,(m.get(k)||0)+1)});if(!m.size)return;
    h+=`<div class="mt"><b>${esc(NM(i))}</b>${[...m].map(([k,n])=>esc(k)+(n>1?' ('+n+')':'')).join(', ')}</div>`});h+='</div>'});
  el.innerHTML=h}
-function prender(){mskt();const R=rows(),g=D.teams.map((t,i)=>P.filter(e=>e.typ=='Mål'&&e.lag==i).length);
+function prender(){mskt();const R=rows(),g=D.teams.map((t,i)=>P.filter(e=>e.typ=='Mål'&&e.lag==i&&!mkDel(e)).length);
  $('rsum').textContent=`${D.teams.map((t,i)=>NM(i)).join(' – ')} ${g.join('–')} · ${P.length} händelser${D.date?' · '+D.date:''}`;
  $('rtab').innerHTML=R.length?'<tr><th>Period</th><th>Tid</th><th>Händelse</th><th>Lag</th><th>Detaljer</th><th>Ställning</th><th class="del"></th></tr>'+R.map(r=>`<tr><td>${esc(r.e.per)}</td><td>${esc(r.e.tid||'–')}</td><td>${r.e.typ}</td><td>${esc(NM(r.e.lag))}</td><td>${esc(r.det)}</td><td class="sc">${r.st}</td><td class="del"><button data-id="${r.e.id}">Ta bort</button></td></tr>`).join(''):'<tr><td style="color:#888">Inga händelser sparade ännu.</td></tr>';
  $('rtab').querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{if(!confirm('Ta bort raden?'))return;P=P.filter(e=>String(e.id)!==b.dataset.id);pst();prender()})}
@@ -250,6 +251,7 @@ if(typeof go==='function'){const g0=go;go=function(k){g0(k);if(typeof V!=='undef
  const d=v.replace(/\D/g,'').replace(/^0+/,'').slice(-4);const n=el.value=d?(d.length<=2?'0:'+d.padStart(2,'0'):d.slice(0,-2)+':'+d.slice(-2)):'';
  try{el.setSelectionRange(n.length,n.length)}catch(_){}},true);
  document.querySelectorAll(SEL).forEach(el=>{if(el.maxLength>0&&el.maxLength<6)el.maxLength=6});})();</script>
+
 <script>/* Ladda match manuellt (samma swehockey-parser som matchklockans Kontroll, MK.fetchLineup) */
 (()=>{const $=id=>document.getElementById(id),ws=x=>x.replace(/\s+/g,' ').trim();
 const fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/LineUps/'+gid,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);

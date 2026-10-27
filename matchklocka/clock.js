@@ -81,7 +81,7 @@ MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT
 // SIF SB 2026/27 (U18/U19/U20 SM-slutspel: OT max 10 min, paus före OT max 3), IIHF R77.2 (paus 15), R84.1 (OT 5, paus 3).
 // Paus före OT: domarstyrd (Daniels beslut) – öppen paus som räknar upp, avslutas med Avbryt.
 MK.PRESETS={'Förbundsserie, t.ex. Hockeyettan / U18 Nationell grundserie (TB)':{P:20,PAUS:18,OT:5},
-  'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10},'Distrikt/region (TB, om ej annat i SB)':{P:20,PAUS:15,OT:5},'IIHF (regelboken)':{P:20,PAUS:15,OT:5}};
+  'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10},'Distrikt/region (TB, om ej annat i SB)':{P:20,PAUS:15,OT:5}};
 MK.preset=k=>{const l=MK.state.len,v=MK.PRESETS[k];if(!v)return;Object.assign(l,v);MK.state.preset=k;MK.save()};
 // Vilket förval som visas: valt förval om tiderna fortfarande stämmer, annars annat matchande förval, annars 'Anpassad'. Inget valt -> ''.
 MK.presetShown=s=>{s=s||MK.state;if(!s.preset)return '';const ok=k=>{const v=MK.PRESETS[k];return v&&Object.keys(v).every(x=>s.len[x]===v[x])};if(ok(s.preset))return s.preset;return Object.keys(MK.PRESETS).find(ok)||'__custom';};

@@ -35,7 +35,7 @@ html,body{max-width:100%;overflow-x:clip}
 <div class="row"><div class="lbl">NUMMER</div><input id="s0" inputmode="numeric" maxlength="2"><div class="res" id="rs0"></div></div><div id="sc"></div><div style="color:#777;font-size:13px" id="ssrc"></div></main>
 <main id="vL" style="display:none"><div class="row" style="grid-template-columns:110px 1fr"><div class="lbl">LAG</div><div class="stb" id="ltb" style="display:flex;gap:12px;flex-wrap:wrap"></div></div>
 <div class="lgrid"><section><div class="lh">LINE-UP <span id="lcnt"></span></div><ol id="lsel"></ol><div class="pbar"><button id="lclr">RENSA LISTAN</button></div></section>
-<section><div class="lh">TRUPP <small>klicka för att välja (max 6)</small></div><div id="lall"></div></section></div><div id="ltr" style="margin:28px 14px 0;color:#999;font-size:15px;line-height:1.6"></div><div id="ldom" style="margin:14px 14px 10px;color:#999;font-size:15px;line-height:1.6"></div><div id="lmBox" style="margin-top:28px;padding:14px;border-top:1px solid #333"><h2>Ladda match (swehockey)</h2><div style="display:grid;grid-template-columns:130px 140px auto auto;gap:10px;align-items:center"><span style="color:#ccc;font-size:16px">Matchnummer</span><input id="lmGid" inputmode="numeric" style="font-size:18px;padding:8px;width:130px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #555;border-radius:8px"><button id="lmB" style="background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:8px;font-size:16px;padding:8px 14px;font-weight:600">Ladda match</button><button id="lmS" style="background:#2a2a2a;color:#ddd;border:1px solid #FFB000;border-radius:8px;font-size:16px;padding:8px 14px;font-weight:600">Synka mot matchklocka</button><button id="lmX" style="background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:8px;font-size:16px;padding:8px 14px;font-weight:600">Tillbaka till automatisk</button></div><div id="lmMsg" style="color:#bbb;font-size:14px;margin-top:8px"></div></div>
+<section><div class="lh">TRUPP <small>klicka för att välja (max 6)</small></div><div id="lall"></div></section></div><div id="ltr" style="margin:28px 14px 0;color:#999;font-size:15px;line-height:1.6"></div><div id="ldom" style="margin:14px 14px 10px;color:#999;font-size:15px;line-height:1.6"></div><div id="lmBox" style="margin-top:28px;padding:14px;border-top:1px solid #333"><h2>Ladda match (swehockey)</h2><div style="display:grid;grid-template-columns:130px 140px auto auto;gap:10px;align-items:center"><span style="color:#ccc;font-size:16px">Matchnummer</span><input id="lmGid" inputmode="numeric" style="font-size:18px;padding:8px;width:130px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #555;border-radius:8px"><button id="lmB" style="background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:8px;font-size:16px;padding:8px 14px;font-weight:600">Ladda match</button></div><div id="lmMsg" style="color:#bbb;font-size:14px;margin-top:8px"></div></div>
 <style>@media(max-width:700px){#lmBox>div{grid-template-columns:110px 1fr!important}#lmBox button{grid-column:1/-1}}</style></main>
 <style>#vR .pbar button{font-size:15px!important;padding:8px 14px!important;min-height:40px;height:auto!important;flex:0 0 auto!important;width:auto!important}#vR .pbar{gap:8px;align-items:center}#vR .pbar button{background:#2a2a2a!important;color:#ddd!important;border:1px solid #555!important;border-radius:8px!important;font-weight:600!important;box-shadow:none!important}#vR .pbar button:hover{background:#3a3a3a!important}#vR #rclr{color:#e88!important;border-color:#8a3a3a!important}</style><main id="vR" style="display:none"><div class="pbar"><button id="rcsv">LADDA NER CSV</button><button id="rprint">SKRIV UT</button><button id="rclr">RENSA PROTOKOLL</button><span id="rsum"></span></div><table id="rtab"></table><div id="mskt"></div><div id="skott"></div><div id="publik"></div><div id="nasta"></div></main>
 <div class="bar"><button id="clr">RENSA (Esc)</button><button id="save">SPARA TILL PROTOKOLL (Ctrl+Enter)</button><span style="color:#777;align-self:center;font-size:15px">Enter/Tab = nästa fält (mål: mål → assist → assist → tid; utvisning: nummer → typ → tid → nästa lag) · Ctrl+Enter/Ctrl+S = spara till protokoll · ↑/↓ eller P i tidsfält = byt period · Esc = rensa fliken · byt flik: <span class="kh">Alt+1–4 eller F1–F4 (1–4</span>, ←/→ när du inte står i ett fält) · + = stega utvisningstid</span></div>
@@ -257,5 +257,29 @@ if(typeof go==='function'){const g0=go;go=function(k){g0(k);if(typeof V!=='undef
  try{el.setSelectionRange(n.length,n.length)}catch(_){}},true);
  document.querySelectorAll(SEL).forEach(el=>{if(el.maxLength>0&&el.maxLength<6)el.maxLength=6});})();</script>
 
+<script>/* Ladda match manuellt (samma swehockey-parser som matchklockans Kontroll, MK.fetchLineup) */
+(()=>{const $=id=>document.getElementById(id),ws=x=>x.replace(/\s+/g,' ').trim();
+window.__fetchLineup=gid=>fetchLineup(gid);
+const fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/LineUps/'+gid,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+  const d=new DOMParser().parseFromString(await r.text(),'text/html'),teams=[];let team=null,role=null;
+  for(const tr of d.querySelectorAll('tr')){if(tr.querySelector('table'))continue;const t=ws(tr.textContent),m=t.match(/^(.+?) \((\w+)\)/);
+    if(m&&tr.querySelectorAll('td,th').length<=2&&!/Referee/.test(t)){team={name:m[1],color:m[2],players:[],coaches:[]};teams.push(team);role=null;continue}
+    if(!team)continue;const st=tr.querySelector('strong');if(st&&ws(st.textContent))role=ws(st.textContent);
+    const isD=[...tr.querySelectorAll('td')].some(td=>!td.hasAttribute('colspan')&&!td.querySelector('strong'));
+    for(const dv of tr.querySelectorAll('div.lineUpPlayer')){const mm=ws(dv.textContent).match(/^(\d+)\.\s*(.+?),\s*(.+)$/);if(!mm)continue;
+      if(team.players.some(p=>p.no===mm[1]))continue;team.players.push({no:mm[1],first:mm[3],last:mm[2],pos:role==='Goalies'?'Målvakt':/\d/.test(role||'')?(isD?'Back':'Forward'):'',line:/\d/.test(role||'')?'Line '+role.replace(/\D/g,''):''})}}
+  const tm=d.body.textContent.match(/(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/);
+  if(teams.length<2)throw Error('Ingen laguppställning hittades');teams.forEach(LUORD);
+  const n=new Date(),p=x=>String(x).padStart(2,'0');
+  return {id:String(gid),gid:String(gid),u18:D0.u18,title:teams[0].name+' – '+teams[1].name,date:tm?tm[1]:'',time:tm?tm[2].padStart(5,'0'):'',arena:'',refs:[],shots:[],teams:teams.slice(0,2),manual:1,fetched:n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+' '+p(n.getHours())+':'+p(n.getMinutes())+' (manuell)'}};
+const g=$('lmGid'),msg=$('lmMsg');g.value=D.gid||D.id||'';
+msg.textContent=(D.manual?'Manuellt laddad match '+D.id+': '+D.teams.map(t=>t.name).join(' – '):'Automatisk match: '+D0.teams.map(t=>t.name).join(' – ')+' ('+(D0.gid||D0.id)+')')+(D.fetched?' · Hämtad '+D.fetched:'')+(D.manual?' · källa: stats.swehockey.se (manuell)':' · källa: stats.swehockey.se');
+
+$('lmB').onclick=async()=>{const id=g.value.replace(/\D/g,'');if(!id){msg.textContent='Ange matchnummer';return}msg.textContent='Hämtar…';
+  try{const o=await fetchLineup(id);localStorage.setItem(OVK,JSON.stringify(o));msg.textContent='OK: '+o.teams.map(t=>t.name+' ('+t.players.length+')').join(' – ')+' – laddar om…';setTimeout(()=>location.reload(),400)}
+  catch(e){msg.textContent='Misslyckades ('+e.message+')'}};
+
+
+g.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();$('lmB').click()}};})();</script>
 
 </body></html>

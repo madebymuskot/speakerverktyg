@@ -188,7 +188,9 @@ MK.setStartTime=v=>{v=(v||'').trim().replace('.',':');MK.state.startTime=/^\d{1,
 MK.releases=s=>s.clock.running?[]:[0,1].flatMap(t=>s.pens[t].filter(p=>p.done&&p.coin&&!s.pens[t].some(q=>q.after===p.id)).map(p=>({t,p})));
 MK.release=(t,id)=>MK.delPen(t,id);
 MK.setCoin=(t,id,on)=>{MK.commit();const s=MK.state,p=s.pens[t].find(p=>p.id===id);if(!p)return;
- p.coin=!!on&&p.kind!=='mis'&&p.kind!=='gm';if(!p.coin&&p.done){p.done=false}s.pens[t]=s.pens[t].filter(q=>q.left>0||q.kind==='gm'||q.done);MK.save()};
+ p.coin=!!on&&p.kind!=='mis'&&p.kind!=='gm';if(!p.coin&&p.done){p.done=false}s.pens[t]=s.pens[t].filter(q=>q.left>0||q.kind==='gm'||q.done);
+ // Spegla kvittningen på händelsen (s.ev) så att Domarskärmen/rapporter ser den även när straffet senare släpps ut/tas bort
+ (s.ev||[]).forEach(e=>{if(e.typ==='Utvisning'&&e.t===t&&e.pids&&e.pids.includes(id))e.coin=e.pids.some(i=>{const q=s.pens[t].find(x=>x.id===i);return q&&q.coin})});MK.save()};
 
 // ===== Time of day (s.tod): rent videolager. Skärmsidorna renderar som vanligt under; MK.idleLayer lägger klockslag överst.
 // Påverkar ingen klock-/match-state, inga ljud eller sekvenser. Ren toggle via knappen. Matchklockan

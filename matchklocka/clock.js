@@ -17,7 +17,7 @@ MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s
 MK.on=f=>MK.listeners.push(f);MK.emit=()=>MK.listeners.forEach(f=>f(MK.state));
 MK.shotSync=s=>{const P=/^(P[1-9]|OT\d*)$/;if(!P.test(s.period))return;const o=s.shotPer||'P1';if(o===s.period)return;s.shotsBy=s.shotsBy||{};s.shotsBy[o]=s.shots.slice();s.shots=(s.shotsBy[s.period]||[0,0]).slice();s.shotPer=s.period};
 MK.shotTot=(s,t)=>{const b=s.shotsBy||{},o=s.shotPer||'P1';let n=s.shots[t];for(const k in b)if(k!==o)n+=b[k][t];return n};
-MK.save=function(){MK.state.v=Date.now();if(MK.state.clock.running&&MK.state.idle)MK.state.idle=null;/* start av matchklockan stänger av Klockslag/Omklädning */try{MK.evSync(MK.state)}catch(e){};MK.shotSync(MK.state);MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
+MK.save=function(){MK.state.v=Date.now();try{MK.evSync(MK.state)}catch(e){};MK.shotSync(MK.state);MK.transports.forEach(t=>t.publish(MK.state));MK.emit()};
 // Tidsberäkning (Date.now-baserad, ingen intervalldrift)
 MK.elapsed=s=>s.clock.running?Date.now()-s.clock.startedAt:0;
 MK.remain=s=>Math.max(0,s.clock.remain-MK.elapsed(s));
@@ -187,13 +187,16 @@ MK.release=(t,id)=>MK.delPen(t,id);
 MK.setCoin=(t,id,on)=>{MK.commit();const s=MK.state,p=s.pens[t].find(p=>p.id===id);if(!p)return;
  p.coin=!!on&&p.kind!=='mis'&&p.kind!=='gm';if(!p.coin&&p.done){p.done=false}s.pens[t]=s.pens[t].filter(q=>q.left>0||q.kind==='gm'||q.done);MK.save()};
 
-// ===== Idle-lägen: Klockslag (tod) och Omklädning (omk). Ömsesidigt uteslutande, påverkar aldrig matchtiden
-// (klockan pausas via MK.stop som vanligt; remain lämnas orörd). Start av matchklockan stänger av läget (se MK.save).
-MK.setIdle=(m,min)=>{const s=MK.state;if(!m||(s.idle&&s.idle.m===m&&min===undefined)){s.idle=null;MK.save();return}
-  MK.stop();s.idle={m,end:m==='omk'&&min>0?Date.now()+min*60000:null};MK.save()};
-MK.todTxt=(blink)=>{const d=new Date(),h=String(d.getHours()).padStart(2,'0'),m=String(d.getMinutes()).padStart(2,'0');return h+'<span style="opacity:'+(blink&&d.getMilliseconds()>=500?0.15:1)+'">:</span>'+m};
-MK.idleHTML=s=>{const i=s.idle;if(!i)return'';if(i.m==='tod')return'<div class="idt tnum">'+MK.todTxt(1)+'</div><div class="ids">'+(s.home||'Piteå HC')+'</div>';
-  const l=i.end?Math.max(0,i.end-Date.now()):null;return'<div class="idk">OMKLÄDNING</div>'+(l!=null?'<div class="idt tnum">'+MK.fmtH(l)+'</div>':'<div class="ids tnum">'+MK.todTxt(0)+'</div>')};
-MK.idleLayer=(o)=>{o=o||{};const d=document.createElement('div');d.id='idlelayer';d.hidden=true;const st=document.createElement('style');
-  st.textContent='#idlelayer{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:'+(o.bg||'#0d0d0d')+';color:#fff;font-family:inherit;text-align:center}#idlelayer[hidden]{display:none}#idlelayer .idt{font-size:'+(o.big||'34vh')+';font-weight:900;line-height:1;font-variant-numeric:tabular-nums}#idlelayer .idk{font-size:'+(o.k||'14vh')+';font-weight:900;letter-spacing:.06em;color:#FFB000}#idlelayer .ids{font-size:'+(o.s||'7vh')+';font-weight:700;opacity:.8;margin-top:2vh}'+(o.css||'');
-  document.head.appendChild(st);document.body.appendChild(d);let last='';const f=()=>{const s=MK.state;if(s){const h=MK.idleHTML(s);d.hidden=!h;if(h!==last){d.innerHTML=h;last=h}}requestAnimationFrame(f)};f()};
+// ===== Time of day (s.tod): rent videolager. Skärmsidorna renderar som vanligt under; MK.idleLayer lägger klockslag överst.
+// Påverkar ingen klock-/match-state, inga ljud eller sekvenser. Ren toggle via knappen. Matchklockan
+// påverkas inte alls (kan gå/programmeras i bakgrunden); START stänger INTE av läget. Kontroll visar alltid matchtid.
+MK.setTod=on=>{const s=MK.state;s.tod=on===undefined?!s.tod:!!on;MK.save()};
+MK.todStr=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+MK.todTxt=blink=>{const d=new Date(),t=MK.todStr();return t.slice(0,2)+'<span style="opacity:'+(blink&&d.getMilliseconds()>=500?0.15:1)+'">:</span>'+t.slice(3)};
+// ===== Mute (s.mute): tystar allt ljud ut. Sekvenser (powerbreak, periodslut m.m.) löper som vanligt.
+// Ljudspelare ska fråga MK.muted() precis innan de spelar; avmute ger ljud från och med nu (inget efterspel).
+MK.muted=()=>!!(MK.state&&MK.state.mute);MK.setMute=on=>{MK.state.mute=on===undefined?!MK.state.mute:!!on;MK.save()};
+MK.idleLayer=o=>{o=o||{};const d=document.createElement('div');d.id='idlelayer';d.hidden=true;const st=document.createElement('style');
+  st.textContent='#idlelayer{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:'+(o.bg||'#0d0d0d')+';color:#fff;text-align:center}'+(o.css||'')+'#idlelayer[hidden]{display:none}#idlelayer .idt{font-size:'+(o.big||'34vh')+';font-weight:900;line-height:1;font-variant-numeric:tabular-nums}#idlelayer .ids{font-size:'+(o.s||'7vh')+';font-weight:700;opacity:.8;margin-top:2vh}';
+  document.head.appendChild(st);document.body.appendChild(d);let last='';const f=()=>{const s=MK.state;if(s){const h=s.tod?'<div class="idt">'+MK.todTxt(1)+'</div><div class="ids">'+(s.home||'Piteå HC')+'</div>':'';d.hidden=!h;if(h!==last){d.innerHTML=h;last=h}}requestAnimationFrame(f)};f()};
+MK.todHide=id=>{const f=()=>{const e=document.getElementById(id);if(e&&MK.state)e.style.visibility=MK.state.tod?'hidden':'';requestAnimationFrame(f)};f()};

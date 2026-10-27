@@ -82,7 +82,9 @@ MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT
 // Paus före OT: domarstyrd (Daniels beslut) – öppen paus som räknar upp, avslutas med Avbryt.
 MK.PRESETS={'Förbundsserie, t.ex. Hockeyettan / U18 Nationell grundserie (TB)':{P:20,PAUS:18,OT:5},
   'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10},'Distrikt/region (TB, om ej annat i SB)':{P:20,PAUS:15,OT:5},'IIHF (regelboken)':{P:20,PAUS:15,OT:5}};
-MK.preset=k=>{const l=MK.state.len,v=MK.PRESETS[k];if(!v)return;Object.assign(l,v);MK.save()};
+MK.preset=k=>{const l=MK.state.len,v=MK.PRESETS[k];if(!v)return;Object.assign(l,v);MK.state.preset=k;MK.save()};
+// Vilket förval som visas: valt förval om tiderna fortfarande stämmer, annars annat matchande förval, annars 'Anpassad'. Inget valt -> ''.
+MK.presetShown=s=>{s=s||MK.state;if(!s.preset)return '';const ok=k=>{const v=MK.PRESETS[k];return v&&Object.keys(v).every(x=>s.len[x]===v[x])};if(ok(s.preset))return s.preset;return Object.keys(MK.PRESETS).find(ok)||'__custom';};
 MK.setPeriod=p=>{MK.commit();const s=MK.state;s.openSince=null;s.clock.running=false;s.period=p;s.next=null;s.clock.remain=p==='SLUT'?0:MK.periodLen(p);MK.save()};
 // Mål (R16.2/R17.2): om det insläppande laget är i numerärt underläge (R16.2 "short-handed") avslutas det räknande
 // mindre straffet med minst tid kvar. 5 min (R20.2), 10 min (R22) och samtidiga (R19) avslutas aldrig av mål.
@@ -109,7 +111,7 @@ MK.noteDel=(t,id)=>{const s=MK.state;s.dels=(s.dels||[]).concat(t+':'+id).slice(
 MK.delPen=(t,id)=>{MK.commit();MK.noteDel(t,id);{const s=MK.state,e=(s.ev||[]).find(e=>e.pids&&e.pids.includes(id)&&!e.del&&!e.end);if(e&&e.pids.every(i=>{const p=s.pens[t].find(q=>q.id===i);return !p||p.left>=MK.fullLen(p)})){e.del=1;e.delTs=Date.now()}}MK.state.pens[t]=MK.state.pens[t].filter(p=>p.id!==id);MK.save()};
 MK.setTimeout_=t=>{MK.stop();MK.state.timeout=t==null?null:{team:t,endsAt:Date.now()+30000};MK.save()};
 MK.newMid=()=>'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-MK.reset=()=>{const s=MK.defaults();s.mid=MK.newMid();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.homeLogo=MK.state.homeLogo;s.awayLogo=MK.state.awayLogo;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
+MK.reset=()=>{const s=MK.defaults();s.mid=MK.newMid();s.home=MK.state.home;s.away=MK.state.away;s.len=MK.state.len;s.preset=MK.state.preset;s.gid=MK.state.gid;s.rosters=MK.state.rosters;s.dir=MK.state.dir;s.swName=MK.state.swName;s.short=MK.state.short;s.homeLogo=MK.state.homeLogo;s.awayLogo=MK.state.awayLogo;s.startTime=MK.state.startTime;s.startDate=MK.state.startDate;s.swStart=MK.state.swStart;s.clock.remain=s.len.P*60000;MK.state=s;MK.save()};
 // Gemensam vy-hjälp för outputs
 MK.view=function(render){MK.init();MK.on(render);const loop=()=>{render(MK.state);requestAnimationFrame(loop)};loop()};
 MK.pensHTML=(s,t,cls)=>s.pens[t].filter(p=>!p.coin&&MK.penLeft(s,p,t)>0).map(p=>{const a=MK.penRunning(s,t,p)||p.kind==='gm';

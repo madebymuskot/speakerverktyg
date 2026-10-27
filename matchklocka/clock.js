@@ -81,7 +81,8 @@ MK.periodLen=p=>{const s=MK.state,l=s.len;return(p==='PAUS'?l.PAUS:p==='OT'?l.OT
 // SIF SB 2026/27 (U18/U19/U20 SM-slutspel: OT max 10 min, paus före OT max 3), IIHF R77.2 (paus 15), R84.1 (OT 5, paus 3).
 // Paus före OT: domarstyrd (Daniels beslut) – öppen paus som räknar upp, avslutas med Avbryt.
 MK.PRESETS={'Förbundsserie, t.ex. Hockeyettan / U18 Nationell grundserie (TB)':{P:20,PAUS:18,OT:5},
-  'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10}};
+  'U18/U19/U20 SM-slutspel (SB)':{P:20,PAUS:18,OT:10},
+  'U16 (3×20, paus 15, OT 5)':{P:20,PAUS:15,OT:5},'U15 (3×20, paus 15, OT 5)':{P:20,PAUS:15,OT:5},'U14 (3×20, paus 15, OT 5)':{P:20,PAUS:15,OT:5},'U13 (3×15, paus 15, ingen OT)':{P:15,PAUS:15,OT:0}};
 MK.preset=k=>{const l=MK.state.len,v=MK.PRESETS[k];if(!v)return;Object.assign(l,v);MK.state.preset=k;MK.save()};
 // Vilket förval som visas: valt förval om tiderna fortfarande stämmer, annars annat matchande förval, annars 'Anpassad'. Inget valt -> ''.
 MK.presetShown=s=>{s=s||MK.state;if(!s.preset)return '';const ok=k=>{const v=MK.PRESETS[k];return v&&Object.keys(v).every(x=>s.len[x]===v[x])};if(ok(s.preset))return s.preset;return Object.keys(MK.PRESETS).find(ok)||'__custom';};
@@ -144,7 +145,7 @@ MK.luord=t=>{const P=t.players,gk=P.filter(x=>x.pos==='M'),sk=P.filter(x=>x.pos!
 MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;const same=s.gid===gid;if(!same)s.mid=MK.newMid();const sw=s.swName||[];if(!same||s.home===sw[0]||!sw[0])s.home=t[0].name;if(!same||s.away===sw[1]||!sw[1])s.away=t[1].name;if(!same)s.short=['',''];s.gid=gid;s.swName=[t[0].name,t[1].name];s.rosters=[t[0].players,t[1].players];if(t.start&&(!same||!s.startTime||s.startTime===s.swStart)){s.startTime=t.start.time;s.startDate=t.start.date}if(t.start)s.swStart=t.start.time;MK.save();return t};
 MK.pname2=(s,t,nr)=>{const p=((s.rosters||[])[t]||[]).find(p=>p.no==nr);return p?p.name:''};
 // Automatiskt matchflöde: period slut -> paus (räknar ner) -> nästa period laddad, stoppad
-MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]?'OT':'SLUT',OT:'SLUT'})[s.period]||null;
+MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]&&(s.len.OT??5)>0?'OT':'SLUT',OT:'SLUT'})[s.period]||null;
 // "Nästa steg i tidslinjen" – används både av automatik (nedräkning når 0) och Avbryt-knappen
 // Uppvärmning (TB §1:6): startar len.WU min före matchstart, pågår len.WUL min. ph 0=före,1=pågår,2=efter
 MK.warm=s=>{const f=MK.cd(s.pre),wu=(s.len.WU??40)*60000,we=wu-(s.len.WUL??20)*60000;return f>wu?{ph:0,txt:'UPPVÄRMNING OM '+MK.fmtH(f-wu)}:f>we?{ph:1,txt:'UPPVÄRMNING PÅGÅR'}:{ph:2,txt:''}};

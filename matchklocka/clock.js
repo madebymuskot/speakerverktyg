@@ -206,8 +206,12 @@ MK.idleLayer=o=>{o=o||{};const d=document.createElement('div');d.id='idlelayer';
   document.head.appendChild(st);document.body.appendChild(d);let last='';const f=()=>{const s=MK.state;if(s){const h=s.tod?'<div class="idt">'+MK.todTxt(1)+'</div><div class="ids">'+(s.home||'Piteå HC')+'</div>':'';d.hidden=!h;if(h!==last){d.innerHTML=h;last=h}}requestAnimationFrame(f)};f()};
 MK.todHide=id=>{const f=()=>{const e=document.getElementById(id);if(e&&MK.state)e.style.visibility=MK.state.tod?'hidden':'';requestAnimationFrame(f)};f()};
 // Utgångar: vilka skärmar som är aktiva (state.outputs[nyckel]===false => släckt)
-MK.OUTPUTS=[['jumbo','Jumbotron'],['tv','TV'],['scorebug','NDI Scorebug'],['mal','NDI Målgrafik'],['utv','NDI Utvisningsgrafik'],['omkl','Omklädningsrum'],['domare','Domarskärm']];
-MK.outOn=k=>!(MK.state&&MK.state.outputs&&MK.state.outputs[k]===false);
+// HIDDEN-SCREENS: skärmar som Daniel lagt åt sidan. De döljs i Klockas Utgångar-lista (och i startsidornas länkar, se index.html/matchklocka/index.html)
+// men sidorna fungerar vid direkt URL och räknas alltid som PÅ. Ta bort en nyckel ur listan nedan för att få tillbaka den i Utgångar.
+MK.HIDDEN_OUTPUTS=['tv','scorebug','mal','utv'];
+MK.ALL_OUTPUTS=[['jumbo','Jumbotron'],['tv','TV'],['scorebug','NDI Scorebug'],['mal','NDI Målgrafik'],['utv','NDI Utvisningsgrafik'],['omkl','Omklädningsrum'],['domare','Domarskärm']];
+MK.OUTPUTS=MK.ALL_OUTPUTS.filter(o=>!MK.HIDDEN_OUTPUTS.includes(o[0]));
+MK.outOn=k=>MK.HIDDEN_OUTPUTS.includes(k)||!(MK.state&&MK.state.outputs&&MK.state.outputs[k]===false);
 MK.setOutput=(k,on)=>{MK.state.outputs=Object.assign({},MK.state.outputs);MK.state.outputs[k]=!!on;MK.save()};
 MK.gate=(k,mode)=>{const st=document.createElement('style');st.textContent=mode==='clear'?'html.mkoff body>*{visibility:hidden!important}':'#mkoff{position:fixed;inset:0;z-index:2147483647;background:#000;cursor:none}#mkoff[hidden]{display:none}';document.head.appendChild(st);
   let d=null;if(mode!=='clear'){d=document.createElement('div');d.id='mkoff';d.hidden=true;(document.body||document.documentElement).appendChild(d)}

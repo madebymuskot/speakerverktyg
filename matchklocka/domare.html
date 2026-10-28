@@ -1,4 +1,4 @@
-<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Matchklocka – Domarskärm</title><link rel="stylesheet" href="style.css?v=20261028-1000"><style>
+<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Matchklocka – Domarskärm</title><link rel="stylesheet" href="style.css?v=20261028-1004"><style>
 html,body{background:#05070b;color:#fff;margin:0;height:100%;overflow:hidden}
 body{font-family:system-ui,Arial,sans-serif;display:flex;flex-direction:column;padding:2.2vh 3vw;box-sizing:border-box}
 #hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:.4vh solid #333;padding-bottom:1vh;font-weight:900}
@@ -9,11 +9,11 @@ body{font-family:system-ui,Arial,sans-serif;display:flex;flex-direction:column;p
 .r1{display:flex;justify-content:space-between;gap:2vw;font-size:clamp(20px,2.6vw,50px);font-weight:900;color:#ccc}
 .r1 .k{color:#fff}.big{font-size:clamp(28px,4vw,76px);font-weight:900;line-height:1.1}
 .sm{font-size:clamp(20px,2.7vw,52px);font-weight:800;color:#e6e6e6}
-.kv{font-size:clamp(20px,2.6vw,50px);font-weight:900;color:#FFD166;padding:.6vh .4vw}
+.lb{color:#FFC233}.kv{font-size:clamp(20px,2.6vw,50px);font-weight:900;color:#FFD166;padding:.6vh .4vw}
 #idle{flex:1;display:grid;place-items:center;text-align:center}#idle .p{font-size:clamp(30px,5vw,96px);font-weight:900;color:#FFB000}#idle .c{font-size:clamp(80px,16vw,300px);font-weight:900;line-height:1}#idle .s{font-size:clamp(20px,2.6vw,50px);color:#aaa;font-weight:800}
 .none{font-size:clamp(24px,3vw,56px);color:#aaa;font-weight:800;text-align:center;margin-top:10vh}
 [hidden]{display:none!important}</style></head><body><div id="hd"><span class="t">AKTUELL AVBLÅSNING</span><span class="c tnum" id="hc"></span></div><div id="list"></div><div id="idle" hidden><div><div class="p" id="ip"></div><div class="c tnum" id="ic"></div><div class="s" id="is"></div></div></div>
-<script src="clock.js?v=20261028-1000"></script><script>MK.gate('domare','black')</script><script>
+<script src="clock.js?v=20261028-1004"></script><script>MK.gate('domare','black')</script><script>
 const $=i=>document.getElementById(i),esc=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const NPp=p=>{p=String(p==null?'':p).toUpperCase().replace(/^P/,'');return p==='OT'||p==='4'?'OT':p?'P'+p:''};
 const SECr=t=>{const m=/(\d+):(\d{1,2})/.exec(String(t||''));return m?+m[1]*60+ +m[2]:null};
@@ -41,7 +41,7 @@ function render(s){const run=s.clock.running;$('hc').textContent=MK.pshort(s.per
   const kv=[],h=[];
   list.forEach(e=>{const r=spFor(s,e,sp)||{},tm=`${esc(e.per)} ${esc(e.el)}`;
     if(e.typ==='Mål'){const sc=who(s,e.t,r.sc),a=[who(s,e.t,r.a1),who(s,e.t,r.a2)].filter(Boolean);
-      h.push(`<div class="ev g"><div class="r1"><span class="k">MÅL – ${esc(team(s,e.t))}</span><span>${tm}</span></div><div class="big">${sc||'Målskytt ej registrerad'}</div><div class="sm">${a.length?a.map((x,i)=>'A'+(i+1)+': '+x).join('&nbsp;&nbsp;·&nbsp;&nbsp;'):'Ingen assist'}</div></div>`)}
+      h.push(`<div class="ev g"><div class="r1"><span class="k"><span class="lb">MÅL</span> – ${esc(team(s,e.t))}</span><span>${tm}</span></div><div class="big">${sc||'Målskytt ej registrerad'}</div><div class="sm">${a.length?a.map((x,i)=>'<span class="lb">A'+(i+1)+':</span> '+x).join('&nbsp;&nbsp;·&nbsp;&nbsp;'):'Ingen assist'}</div></div>`)}
     else{const line=`${who(s,e.t,r.pl,e.nr)||'#?'} ${esc(team(s,e.t))} ${esc(e.lbl||e.min)} min`;
       if(e.coin){kv.push(line);return}
       h.push(`<div class="ev p"><div class="r1"><span class="k">UTVISNING – ${esc(team(s,e.t))}</span><span>${tm}</span></div><div class="big">${who(s,e.t,r.pl,e.nr)||'#?'} · ${esc(e.lbl||e.min)} min</div>${r.pt?`<div class="sm">${esc(r.pt)}</div>`:''}</div>`)}});

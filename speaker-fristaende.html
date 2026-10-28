@@ -80,12 +80,12 @@ let D={"id": "1112958", "refs": [{"role": "Huvuddomare", "name": "Filip Bohm", "
 const LUORD=t=>{const P=t.players,ln=x=>parseInt(String(x.line||'').replace(/\D/g,''))||0,gk=P.filter(x=>x.pos==='Målvakt'),sk=P.filter(x=>x.pos!=='Målvakt'&&x.line),ex=P.filter(x=>x.pos!=='Målvakt'&&!x.line);
  if(sk.length>1&&ln(sk[0])>ln(sk[sk.length-1])){sk.reverse();gk.reverse()}
  if(t._num){const r=x=>x.pos==='Back'?0:1;sk.sort((a,b)=>ln(a)-ln(b)||r(a)-r(b))}t.players=gk.concat(sk,ex);delete t._num;return t};
-const OVK='speakerapp_override_'+(D0.u18?'u18':'a');D=(()=>{try{const o=JSON.parse(localStorage.getItem(OVK));if(o&&o.teams&&o.teams.length>1){if(String(o.gid||o.id)===String(D0.gid||D0.id))return D0;o.teams.forEach(t=>{(t.players||[]).forEach(p=>{if(/^\d+$/.test(p.line||''))p.line='Line '+p.line});t._num=1;LUORD(t)});return o}}catch(e){}return D0})();let T=0,V='G';
+const LAG=D0.lag||(D0.u18?'U18':'A');const OVK='speakerapp_override_'+LAG.toLowerCase();D=(()=>{try{const o=JSON.parse(localStorage.getItem(OVK));if(o&&o.teams&&o.teams.length>1){if(String(o.gid||o.id)===String(D0.gid||D0.id))return D0;o.teams.forEach(t=>{(t.players||[]).forEach(p=>{if(/^\d+$/.test(p.line||''))p.line='Line '+p.line});t._num=1;LUORD(t)});return o}}catch(e){}return D0})();let T=0,V='G';
 const $=id=>document.getElementById(id);
 const S=D.teams.map(()=>({g:['','',''],p:['',''],t:['',''],y:''}));
-const NM=i=>D.teams[i].name.trim().split(/\s+/)[0];
+const NM=i=>{const w=D.teams[i].name.trim().split(/\s+/);return w.length>1&&/^(SK|IF|IK|BK|IFK|AIK|HC|HK)$/.test(w[0])?w[1]:w[0]};
 const TIMES=['2','2+2','5','5+20'];const TL={'2':'2 min','2+2':'2+2 min','5':'5 min','5+20':'5+20 min (game)'};
-(()=>{const hM=document.getElementById('hM'),hW=document.getElementById('hW');hM.textContent=D.teams.map((t,i)=>NM(i)).join(' – ');let w='';if(D.date){const x=new Date(D.date+'T12:00:00'),dn=['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'],mn=['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];w=dn[x.getDay()]+' '+x.getDate()+' '+mn[x.getMonth()]+' '+x.getFullYear()}const z=[w,D.time,D.arena].filter(Boolean);hW.textContent=z.join(' · ');})();
+(()=>{const hM=document.getElementById('hM'),hW=document.getElementById('hW');hM.textContent=D.teams.map((t,i)=>NM(i)).join(' – ');let w='';if(D.date){const x=new Date(D.date+'T12:00:00'),dn=['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'],mn=['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];w=dn[x.getDay()]+' '+x.getDate()+' '+mn[x.getMonth()]+' '+x.getFullYear()}const z=[LAG!=='A'?LAG:'',w,D.time,D.arena].filter(Boolean);hW.textContent=z.join(' · ');})();
 $('t').innerHTML='';document.title='Speaker – '+D.teams.map((t,i)=>NM(i)).join(' – ');
 D.teams.forEach((t,i)=>{const b=document.createElement('button');b.textContent=NM(i);b.onclick=()=>setTeam(i);$('teams').appendChild(b)});
 document.querySelectorAll('.tm').forEach(d=>{TIMES.forEach(m=>{const b=document.createElement('button');b.textContent=TL[m];b.dataset.m=m;b.tabIndex=-1;b.onclick=()=>{const i=+d.dataset.i,q=S[i>>1];q.t[i%2]=q.t[i%2]===m?'':m;render()};d.appendChild(b)})});
@@ -252,7 +252,7 @@ function skRender(){const el=$('skott');if(!el)return;const d=SKD,n=4,hd=['P1','
 function skFetch(){if(!D.gid){skRender();return}fetch('https://stats.swehockey.se/Game/Events/'+D.gid,{cache:'no-store'}).then(r=>r.ok?r.text():Promise.reject()).then(h=>{const r=skParse(h);if(r){SKD=r;const z=new Date();SKT=String(z.getHours()).padStart(2,'0')+':'+String(z.getMinutes()).padStart(2,'0')}skRender()}).catch(()=>skRender())}
 function skTick(){if(V=='R'&&!document.hidden)skFetch()}
 try{skRender();skFetch();setInterval(skTick,60000)}catch(e){}
-try{const _tt=D.u18?'Speaker U18':'Speaker A-lag';_tt+=' (fristående)';document.title=_tt;const _m=document.createElement('meta');_m.name='apple-mobile-web-app-title';_m.content=_tt;document.head.appendChild(_m)}catch(e){}</script><div style="text-align:center;font-size:11px;color:#777;padding:14px 0 10px;opacity:.8">© 2026 Daniel Elfström</div><script>/* Publik (Spectators) från swehockey Game/Events/<gid> (CORS *). Redigerbart, sparas per match. */
+try{const _tt=LAG==='A'?'Speaker A-lag':'Speaker '+LAG;_tt+=' (fristående)';document.title=_tt;const _m=document.createElement('meta');_m.name='apple-mobile-web-app-title';_m.content=_tt;document.head.appendChild(_m)}catch(e){}</script><div style="text-align:center;font-size:11px;color:#777;padding:14px 0 10px;opacity:.8">© 2026 Daniel Elfström</div><script>/* Publik (Spectators) från swehockey Game/Events/<gid> (CORS *). Redigerbart, sparas per match. */
 (()=>{const el=document.getElementById('publik');if(!el||typeof D==='undefined')return;const K='publik_'+(D.gid||'x');
 el.style.cssText='margin:22px 0 6px;border:2px solid #AF2E32;border-radius:10px;padding:14px 16px;background:#111;color:#fff';
 el.innerHTML='<h2 style="margin:0 0 8px">Publik</h2><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input id="pubv" inputmode="numeric" placeholder="–" style="width:140px;font-size:26px;font-weight:800"><button id="pubh">Hämta</button><span id="pubs" style="color:#bbb;font-size:14px"></span></div><div id="pubr" style="margin-top:10px;font-size:24px;color:#FFB000;font-weight:700"></div>';
@@ -292,7 +292,7 @@ const fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Ga
   const tm=d.body.textContent.match(/(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/);
   if(teams.length<2)throw Error('Ingen laguppställning hittades');teams.forEach(LUORD);
   const n=new Date(),p=x=>String(x).padStart(2,'0');
-  return {id:String(gid),gid:String(gid),u18:D0.u18,title:teams[0].name+' – '+teams[1].name,date:tm?tm[1]:'',time:tm?tm[2].padStart(5,'0'):'',arena:'',refs:[],shots:[],teams:teams.slice(0,2),manual:1,fetched:n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+' '+p(n.getHours())+':'+p(n.getMinutes())+' (manuell)'}};
+  return {id:String(gid),gid:String(gid),u18:D0.u18,lag:D0.lag,title:teams[0].name+' – '+teams[1].name,date:tm?tm[1]:'',time:tm?tm[2].padStart(5,'0'):'',arena:'',refs:[],shots:[],teams:teams.slice(0,2),manual:1,fetched:n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+' '+p(n.getHours())+':'+p(n.getMinutes())+' (manuell)'}};
 const g=$('lmGid'),msg=$('lmMsg');g.value=D.gid||D.id||'';
 msg.textContent=(D.manual?'Manuellt laddad match '+D.id+': '+D.teams.map(t=>t.name).join(' – '):'Automatisk match: '+D0.teams.map(t=>t.name).join(' – ')+' ('+(D0.gid||D0.id)+')')+(D.fetched?' · Hämtad '+D.fetched:'')+(D.manual?' · källa: stats.swehockey.se (manuell)':' · källa: stats.swehockey.se');
 
@@ -304,10 +304,10 @@ $('lmB').onclick=async()=>{const id=g.value.replace(/\D/g,'');if(!id){msg.textCo
 g.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();$('lmB').click()}};})();</script>
 <script>/* Nollställ modul: rensar bara SpeakerAppens egna data (protokoll, laguppställningsval, publik-/sedda-flaggor, manuellt laddad match). Rör aldrig matchklockans state eller andra moduler. */
 (()=>{const b=document.getElementById('lmR');if(!b)return;b.onclick=()=>{if(!confirm('Nollställa SpeakerApp?\n\nRensar protokoll (mål/utvisningar/ifyllda spelare), laguppställningsval och manuellt laddad match för den här SpeakerAppen.\nMatchklockan och andra moduler påverkas inte.'))return;
- const fri=!document.getElementById('lmS'),pre=(fri?'speakerfri':'speakerapp')+'_',ids=[...new Set([D.id,D.gid,D0.id,D0.gid].filter(Boolean).map(String))],ov=pre==='speakerapp_'?'speakerapp_override_'+(D0.u18?'u18':'a'):null,del=[];
+ const fri=!document.getElementById('lmS'),pre=(fri?'speakerfri':'speakerapp')+'_',ids=[...new Set([D.id,D.gid,D0.id,D0.gid].filter(Boolean).map(String))],ov=pre==='speakerapp_'?'speakerapp_override_'+LAG.toLowerCase():null,del=[];
  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
   if(ids.some(id=>k===pre+'protokoll_'+id||k.startsWith('speakerapp_lineup_'+id+'_')||k==='speakerapp_lineup_team_'+id||k==='publik_'+id||k==='publik_'+id+'_m'))del.push(k)}
- ['speakerapp_override_'+(D0.u18?'u18':'a'),'fullt_seen','tleft_seen'].forEach(k=>localStorage.getItem(k)!==null&&del.push(k));
+ ['speakerapp_override_'+LAG.toLowerCase(),'fullt_seen','tleft_seen'].forEach(k=>localStorage.getItem(k)!==null&&del.push(k));
  del.forEach(k=>localStorage.removeItem(k));sessionStorage.setItem('lmSyncMsg','Modulen nollställd ('+del.length+' poster rensade)');location.reload()}})();</script>
 
 

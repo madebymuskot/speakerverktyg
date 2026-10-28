@@ -1,5 +1,5 @@
 /* Tryckeffekt: knappar blir tillfälligt gula (#FFB000, mörk text) vid tryck, mus/touch/tangentbord.
-   Delegerat på document, så ingen knapp behöver ändras. Lägg <script src="tapfx.js"></script> i en modul för att aktivera.
+   Delegerat på document, så ingen knapp behöver ändras. Lägg en script-tagg med src="tapfx.js" i modulens head för att aktivera.
    Undantag: disabled-knappar och knappar med data-nofx. Knappar med data-tapfx="red" får röd tryckfeedback i stället (bara Mute i Klocka). Ändrar aldrig storlek (bara färg), och klassen tas bort efter ~300 ms. */
 (()=>{if(window.TAPFX)return;window.TAPFX=1;
 const st=document.createElement('style');

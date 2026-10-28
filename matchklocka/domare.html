@@ -1,4 +1,4 @@
-<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Matchklocka – Domarskärm</title><link rel="stylesheet" href="style.css?v=20261028-1015"><style>
+<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Matchklocka – Domarskärm</title><link rel="stylesheet" href="style.css?v=20261028-1019"><style>
 html,body{background:#05070b;color:#fff;margin:0;height:100%;overflow:hidden}
 body{font-family:system-ui,Arial,sans-serif;display:flex;flex-direction:column;padding:2.2vh 3vw;box-sizing:border-box}
 #hd{flex-wrap:wrap;column-gap:2vw;display:flex;justify-content:space-between;align-items:baseline;border-bottom:.4vh solid #333;padding-bottom:1vh;font-weight:900}
@@ -12,8 +12,10 @@ body{font-family:system-ui,Arial,sans-serif;display:flex;flex-direction:column;p
 .lb{color:#FFC233}.kv{font-size:clamp(20px,2.6vw,50px);font-weight:900;color:#FFD166;padding:.6vh .4vw}
 #idle{flex:1;display:grid;place-items:center;text-align:center}#idle .p{font-size:clamp(30px,5vw,96px);font-weight:900;color:#FFB000}#idle .c{font-size:clamp(80px,16vw,300px);font-weight:900;line-height:1}#idle .s{font-size:clamp(20px,2.6vw,50px);color:#aaa;font-weight:800}
 .none{font-size:clamp(24px,3vw,56px);color:#aaa;font-weight:800;text-align:center;margin-top:10vh}
-[hidden]{display:none!important}</style></head><body><div id="hd"><span class="t">AKTUELL AVBLÅSNING</span><span class="c tnum" id="hc"></span></div><div id="list"></div><div id="idle" hidden><div><div class="p" id="ip"></div><div class="c tnum" id="ic"></div><div class="s" id="is"></div></div></div>
-<script src="clock.js?v=20261028-1015"></script><script>MK.gate('domare','black')</script><script>
+#ban{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:2vw;margin-top:1.6vh;padding:1vh 1.6vw;background:#FFB000;color:#000;border-radius:.6vw;font-weight:900}#ban .bl{font-size:clamp(28px,4vw,76px);line-height:1.1}#ban .bt{font-size:clamp(56px,min(11vw,18vh),210px);line-height:1}
+#ban.full{flex:1;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1.6vh}#ban.full .bt{font-size:clamp(100px,min(22vw,40vh),420px)}
+[hidden]{display:none!important}</style></head><body><div id="hd"><span class="t">AKTUELL AVBLÅSNING</span><span class="c tnum" id="hc"></span></div><div id="ban" hidden></div><div id="list"></div><div id="idle" hidden><div><div class="p" id="ip"></div><div class="c tnum" id="ic"></div><div class="s" id="is"></div></div></div>
+<script src="clock.js?v=20261028-1019"></script><script>MK.gate('domare','black')</script><script>
 const $=i=>document.getElementById(i),esc=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const NPp=p=>{p=String(p==null?'':p).toUpperCase().replace(/^P/,'');return p==='OT'||p==='4'?'OT':p?'P'+p:''};
 const SECr=t=>{const m=/(\d+):(\d{1,2})/.exec(String(t||''));return m?+m[1]*60+ +m[2]:null};
@@ -33,10 +35,13 @@ function spFor(s,e,sp){// matcha speaker-rad: mål via ev-id, annars samma lag+t
   const x=sp.find(r=>r.ev&&r.ev===e.id);if(x)return x;const es=SECr(e.el);
   return sp.find(r=>r.typ===e.typ&&+r.lag===e.t&&NPp(r.per)===e.per&&Math.abs((PT(s,r.tid,e.per)??-99)-es)<=10&&(e.typ!=='Utvisning'||!e.nr||!r.pl||String(r.pl.no)===String(e.nr)))}
 let last='';
-function render(s){const run=s.clock.running;$('hc').innerHTML=esc(MK.pshort(s.period))+' · <span class="hk '+(run?'run':'stp')+'">'+(s.period==='PAUS'?MK.fmtP(MK.remain(s)):MK.evT(s).el)+'</span>';
+function render(s){const run=s.clock.running;
+  const cur=MK.current(s),bn=cur==='timeout'?['TIMEOUT – '+team(s,s.timeout.team),MK.fmtP(MK.cd(s.timeout))]:cur==='powerbreak'?['POWERBREAK',MK.fmtP(MK.cd(s.pb))]:cur==='paus'?['PAUS'+(MK.openPause(s)?' – väntar på domare':s.next?' – nästa '+s.next:''),MK.fmtShown(s)]:null;
+  if(bn){const k=bn.join('|');if($('ban').dataset.k!==k){$('ban').dataset.k=k;$('ban').innerHTML='<span class="bl">'+esc(bn[0])+'</span><span class="bt tnum">'+esc(bn[1])+'</span>'}$('ban').hidden=false}else{$('ban').hidden=true;$('ban').dataset.k=''}
+$('hc').innerHTML=esc(MK.pshort(s.period))+' · <span class="hk '+(run?'run':'stp')+'">'+(s.period==='PAUS'?MK.fmtP(MK.remain(s)):MK.evT(s).el)+'</span>';
   const list=run?null:stoppage(s);
-  if(!list){$('list').hidden=true;$('hd').hidden=true;$('idle').hidden=false;$('ip').textContent=MK.pname(s.period).toUpperCase();$('ic').textContent=MK.fmtP(MK.remain(s));$('is').textContent=s.home+'  '+s.goals[0]+' – '+s.goals[1]+'  '+s.away;return}
-  $('list').hidden=false;$('hd').hidden=false;$('idle').hidden=true;
+  if(!list){$('list').hidden=true;$('hd').hidden=true;$('idle').hidden=(cur==='paus');$('ban').classList.toggle('full',cur==='paus');$('ip').textContent=MK.pname(s.period).toUpperCase();$('ic').textContent=MK.fmtP(MK.remain(s));$('is').textContent=s.home+'  '+s.goals[0]+' – '+s.goals[1]+'  '+s.away;return}
+  $('ban').classList.remove('full');$('list').hidden=false;$('hd').hidden=false;$('idle').hidden=true;
   const sp=SPK(s),key=JSON.stringify([list,sp.length,s.v]);if(key===last)return;last=key;
   const kv=[],h=[];
   list.forEach(e=>{const r=spFor(s,e,sp)||{},tm=esc(e.el);

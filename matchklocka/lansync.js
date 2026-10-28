@@ -21,7 +21,7 @@ if(location.protocol==='https:'&&!/^(localhost|127\.0\.0\.1)(:|$)/.test(host))re
 const HTTP='http://'+host,WSU='ws://'+host+'/lan';
 const KLOCKA_KEY='matchklocka_state_v1';
 /* Vilka nycklar som delas (samma lista i hubben). Medvetet INTE: matchklocka_tv_v1 (TV-utgångens inställningar hör till den Klocka som kör bridgen), fullt_seen/tleft_seen (påminnelseflaggor per enhet). */
-const SYNC=k=>typeof k==='string'&&(k===KLOCKA_KEY||k==='paisen_v1'||k==='paisen_override'||k==='skott_v1'||/^speakerapp_(protokoll|override|lineup)_/.test(k)||/^publik_/.test(k));
+const SYNC=k=>typeof k==='string'&&(k===KLOCKA_KEY||k==='paisen_v1'||k==='paisen_override'||k==='skott_v1'||/^speakerapp_(protokoll|override|lineup)_/.test(k)||/^matchklocka_nrfix_v1_/.test(k)||/^publik_/.test(k));
 const ls=localStorage,origSet=Storage.prototype.setItem,origRem=Storage.prototype.removeItem,origGet=Storage.prototype.getItem;
 const gi=k=>{try{return origGet.call(ls,k)}catch(e){return null}};
 /* ---------- tid: hubbens klocka ---------- */

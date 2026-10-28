@@ -10,7 +10,7 @@ MK.LocalTransport={ // BroadcastChannel + localStorage (samma dator)
 };
 // Exempel på framtida transport: {init(onRemote){...ws.onmessage...}, load(){return null}, publish(s){ws.send(JSON.stringify(s))}}
 MK.defaults=()=>({v:0,home:'Piteå HC',away:'Motståndare',goals:[0,0],shots:[0,0],period:'P1',
-  len:{P:20,PAUS:18,PRE:60,WU:40,WUL:20,OT:5,PB:70,PBS:60},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1,ev:[]});
+  len:{P:20,PAUS:18,PRE:60,WU:40,WUL:20,OT:5,PB:70,PBS:60,PBN:0},clock:{running:false,remain:20*60000,startedAt:0},pens:[[],[]],timeout:null,pid:1,ev:[]});
 MK.init=function(transports){MK.transports=transports||[MK.LocalTransport];let s=null;
   for(const t of MK.transports){t.init(r=>{if(!MK.state||r.v>=MK.state.v){MK.state=r;MK.emit()}});s=s||t.load()}
   MK.state=Object.assign(MK.defaults(),s||{});if(!MK.state.len.v18){if(MK.state.len.PAUS===15)MK.state.len.PAUS=18;MK.state.len.v18=1}MK.state.pens.forEach(a=>a.forEach(p=>{p.kind=p.kind||(p.min===10?'mis':p.min===5?'maj':'min')}));return MK.state};

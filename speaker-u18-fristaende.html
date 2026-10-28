@@ -257,7 +257,7 @@ if(typeof go==='function'){const g0=go;go=function(k){g0(k);if(typeof V!=='undef
  try{el.setSelectionRange(n.length,n.length)}catch(_){}},true);
  document.querySelectorAll(SEL).forEach(el=>{if(el.maxLength>0&&el.maxLength<6)el.maxLength=6});})();</script>
 
-<script>/* Ladda match manuellt (samma swehockey-parser som matchklockans Kontroll, MK.fetchLineup) */
+<script>/* Ladda match manuellt (samma swehockey-parser som matchklockans Klocka, MK.fetchLineup) */
 (()=>{const $=id=>document.getElementById(id),ws=x=>x.replace(/\s+/g,' ').trim();
 window.__fetchLineup=gid=>fetchLineup(gid);
 const fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/LineUps/'+gid,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);

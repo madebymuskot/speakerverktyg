@@ -1,4 +1,4 @@
-<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><script src="lansync.js?v=20261028-2031" data-role="klient" data-indicator="1"></script><script src="reset.js?v=20261028-2031"></script><script>MKRESET.register({name:'skott',keys:['skott_v1']})</script><meta name="viewport" content="width=device-width,initial-scale=1"><title>Piteå HC – Skott &amp; puckinnehav</title><link rel="stylesheet" href="style.css?v=20261028-2031">
+<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><script src="lansync.js?v=20261028-2041" data-role="klient" data-indicator="1"></script><script src="reset.js?v=20261028-2041"></script><script>MKRESET.register({name:'skott',keys:['skott_v1']})</script><meta name="viewport" content="width=device-width,initial-scale=1"><title>Piteå HC – Skott &amp; puckinnehav</title><link rel="stylesheet" href="style.css?v=20261028-2041">
 <style>
 header{flex-wrap:nowrap}#hClk{margin-left:auto;text-align:right;line-height:1.05;font-variant-numeric:tabular-nums}#hClk[hidden]{display:none}
 #hCp{font-size:13px;color:#FFB000;font-weight:800}#hCk{font-size:30px;font-weight:900}#hCs{font-size:12px;color:#999}#hClk.run #hCk{color:#2ECC40}
@@ -12,7 +12,7 @@ main{padding:10px 12px;max-width:900px;margin:0 auto}h2{color:#fff;font-size:17p
 .tm{min-width:0;background:#151515;border:1px solid #333;border-radius:12px;padding:10px;text-align:center}
 .tn{font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sog{font-size:64px;font-weight:900;color:#FFB000;line-height:1.1;font-variant-numeric:tabular-nums}
-.lb{color:#999;font-size:12px}
+.lb{color:#999;font-size:12px}.kl{color:#888;font-size:15px;margin-top:2px;min-height:18px}.kl b{font-weight:700;color:#aaa}.kc{color:#888;font-size:13px;font-weight:400;margin-left:4px}
 .pm{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:8px}
 .pm button{height:72px;font-size:34px;font-weight:900;background:#2a2a2a;color:#fff;border:1px solid #444;border-radius:12px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .pm button.plus{border-color:#FFB000}.pm button:active{background:#444}
@@ -35,8 +35,8 @@ table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:ta
 <div class="per np" id="per"></div><div id="perInfo"></div>
 <h2>SOG</h2>
 <div class="teams">
- <div class="tm"><div class="tn" id="n0"></div><div class="sog" id="s0">0</div><div class="lb" id="t0"></div><div class="pm"><button onclick="shot(0,-1)" aria-label="minus">−</button><button class="plus" onclick="shot(0,1)" aria-label="plus">+</button></div></div>
- <div class="tm"><div class="tn" id="n1"></div><div class="sog" id="s1">0</div><div class="lb" id="t1"></div><div class="pm"><button onclick="shot(1,-1)" aria-label="minus">−</button><button class="plus" onclick="shot(1,1)" aria-label="plus">+</button></div></div>
+ <div class="tm"><div class="tn" id="n0"></div><div class="sog" id="s0">0</div><div class="lb" id="t0"></div><div class="kl" id="k0"></div><div class="pm"><button onclick="shot(0,-1)" aria-label="minus">−</button><button class="plus" onclick="shot(0,1)" aria-label="plus">+</button></div></div>
+ <div class="tm"><div class="tn" id="n1"></div><div class="sog" id="s1">0</div><div class="lb" id="t1"></div><div class="kl" id="k1"></div><div class="pm"><button onclick="shot(1,-1)" aria-label="minus">−</button><button class="plus" onclick="shot(1,1)" aria-label="plus">+</button></div></div>
 </div>
 <h2>Puckinnehav</h2>
 <div class="pos" id="pos"><button id="p0" onclick="poss(0)"></button><button id="p1" onclick="poss(1)"></button><button id="p2" onclick="poss(null)">Ingen</button></div>
@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:ta
 <table id="tab"></table>
 <div class="bar np" style="margin-top:14px"><button class="sm" onclick="csv()">Ladda ner CSV</button><button class="sm" onclick="print()">Skriv ut</button><button class="sm rd" onclick="clr()">Rensa statistik</button></div>
 </main>
-<script src="aktuell.js?v=20261028-2031"></script>
+<script src="aktuell.js?v=20261028-2041"></script>
 <script>
 const KEY='matchklocka_state_v1',XK='skott_v1',PER=['P1','P2','P3','OT'],$=i=>document.getElementById(i);let S=null;
 const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();
@@ -74,21 +74,26 @@ function manPause(v){bank();X.paused=v;X.on=ticking();sv();render()}
 function undo(){const u=X.undo.pop();if(!u)return;bank();const o=JSON.parse(u);X.per=o.per;X.d=o.d;X.cur=o.cur;X.since=Date.now();sv();render()}
 function clr(){if(!confirm('Rensa all skott- och innehavsstatistik?'))return;X.d={};PER.forEach(p=>X.d[p]=z());X.cur=null;X.undo=[];X.since=Date.now();if(!mkPer())X.per='P1';sv();render()}
 const cur=p=>{const v=X.d[p].pos.slice();if(p===X.per&&X.cur!=null&&X.on)v[X.cur]+=Date.now()-X.since;return v};
+/* Klockans registrerade skott (matchklocka_state_v1, skrivskyddat): visas grått bredvid egna siffror. Perioden som är aktiv ligger i s.shots, övriga i s.shotsBy. */
+const kOk=()=>!!(S&&S.shots&&S.shots.length>1);
+const kPer=(p,t)=>{if(!kOk())return null;if((S.shotPer||'P1')===p)return S.shots[t]|0;const b=S.shotsBy&&S.shotsBy[p];return b?b[t]|0:0};
+const kTot=t=>{if(!kOk())return null;let n=S.shots[t]|0;const o=S.shotPer||'P1';for(const k in(S.shotsBy||{}))if(k!==o)n+=S.shotsBy[k][t]|0;return n};
 const sum=f=>PER.reduce((a,p)=>{const v=f(p);return[a[0]+v[0],a[1]+v[1]]},[0,0]);
 const mmss=ms=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 const pct=v=>{const t=v[0]+v[1];return t?[Math.round(v[0]*100/t),100-Math.round(v[0]*100/t)]:[0,0]};
 const used=p=>{const d=X.d[p];return d.sog[0]+d.sog[1]+d.pos[0]+d.pos[1]>0||p===X.per};
+const kd=(p,t,v)=>{const k=kPer(p,t);return k==null||k===v?'':` <span class="kc">(klockan ${k})</span>`};const kdt=(t,v)=>{const k=kTot(t);return k==null||k===v?'':` <span class="kc">(klockan ${k})</span>`};
 function render(){const mp=mkPer();
  $('hM').textContent=sname(0)+' – '+sname(1);
  $('per').innerHTML=PER.map(p=>`<button class="${p===X.per?'on':''}" ${mp?'disabled':''} onclick="setPer('${p}')">${p}</button>`).join('');
  $('perInfo').textContent=mp?'Perioden följer matchklockan':'Välj period manuellt (matchklockan inte aktiv i denna webbläsare)';
- [0,1].forEach(t=>{$('n'+t).textContent=sname(t);$('s'+t).textContent=X.d[X.per].sog[t];$('t'+t).textContent='SOG '+X.per+' · tot '+sum(p=>X.d[p].sog)[t];$('p'+t).textContent=sname(t)});
+ [0,1].forEach(t=>{$('n'+t).textContent=sname(t);$('s'+t).textContent=X.d[X.per].sog[t];$('t'+t).textContent='SOG '+X.per+' · tot '+sum(p=>X.d[p].sog)[t];$('k'+t).innerHTML=kOk()?'Klockan: <b>'+kPer(X.per,t)+'</b> · tot '+kTot(t):'';$('p'+t).textContent=sname(t)});
  [0,1,2].forEach(i=>$('p'+i).classList.toggle('on',(i===2?null:i)===X.cur));
  $('pauseW').style.display=live()?'none':'';$('mPause').checked=!!X.paused;$('undoB').disabled=!X.undo.length;
  tickPos();
- const rows=PER.filter(used).map(p=>{const d=X.d[p],v=cur(p),q=pct(v);return`<tr class="${p===X.per?'cur':''}"><td>${p}</td><td>${d.sog[0]}</td><td>${d.sog[1]}</td><td>${q[0]}% (${mmss(v[0])})</td><td>${q[1]}% (${mmss(v[1])})</td></tr>`});
+ const rows=PER.filter(used).map(p=>{const d=X.d[p],v=cur(p),q=pct(v);return`<tr class="${p===X.per?'cur':''}"><td>${p}</td><td>${d.sog[0]}${kd(p,0,d.sog[0])}</td><td>${d.sog[1]}${kd(p,1,d.sog[1])}</td><td>${q[0]}% (${mmss(v[0])})</td><td>${q[1]}% (${mmss(v[1])})</td></tr>`});
  const ts=sum(p=>X.d[p].sog),tv=sum(cur),tq=pct(tv);
- $('tab').innerHTML=`<tr><th>Period</th><th>SOG ${esc(sname(0))}</th><th>SOG ${esc(sname(1))}</th><th>Innehav ${esc(sname(0))}</th><th>Innehav ${esc(sname(1))}</th></tr>`+rows.join('')+`<tr class="tot"><td>Totalt</td><td>${ts[0]}</td><td>${ts[1]}</td><td>${tq[0]}% (${mmss(tv[0])})</td><td>${tq[1]}% (${mmss(tv[1])})</td></tr>`}
+ $('tab').innerHTML=`<tr><th>Period</th><th>SOG ${esc(sname(0))}</th><th>SOG ${esc(sname(1))}</th><th>Innehav ${esc(sname(0))}</th><th>Innehav ${esc(sname(1))}</th></tr>`+rows.join('')+`<tr class="tot"><td>Totalt</td><td>${ts[0]}${kdt(0,ts[0])}</td><td>${ts[1]}${kdt(1,ts[1])}</td><td>${tq[0]}% (${mmss(tv[0])})</td><td>${tq[1]}% (${mmss(tv[1])})</td></tr>`}
 function tickPos(){const v=cur(X.per),q=pct(v),t=v[0]+v[1];$('pbH').style.width=(t?q[0]:50)+'%';$('pbB').style.width=(t?q[1]:50)+'%';$('pbH').textContent=t?q[0]+'%':'';$('pbB').textContent=t?q[1]+'%':'';
  const who=X.cur==null?'Ingen':sname(X.cur);
  $('posSt').innerHTML=`${X.per}: ${esc(sname(0))} <b>${mmss(v[0])}</b> · ${esc(sname(1))} <b>${mmss(v[1])}</b> — Innehav: <b>${esc(who)}</b>`+(X.cur!=null&&!X.on?' <span class="w">(pausad – klockan står)</span>':'')}
@@ -97,11 +102,11 @@ function csv(){const q=x=>'"'+String(x).replace(/"/g,'""')+'"',s=x=>(x/1000).toF
  PER.filter(used).forEach(p=>{const d=X.d[p],v=cur(p),pc=pct(v);rows.push([p,d.sog[0],d.sog[1],s(v[0]),s(v[1]),pc[0],pc[1]])});
  const ts=sum(p=>X.d[p].sog),tv=sum(cur),tq=pct(tv);rows.push(['Totalt',ts[0],ts[1],s(tv[0]),s(tv[1]),tq[0],tq[1]]);
  const b=new Blob(['\ufeff'+rows.map(r=>r.map(q).join(';')).join('\r\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='skott-'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
-let rk='';function onMK(){sync();const k=[mkPer(),live()].join();if(k!==rk){rk=k;render()}}
+let rk='';function onMK(){sync();const k=[mkPer(),live(),S&&JSON.stringify([S.shots,S.shotsBy,S.shotPer])].join();if(k!==rk){rk=k;render()}}
 try{new BroadcastChannel('matchklocka').addEventListener('message',e=>{S=e.data;onMK()})}catch(e){}
 addEventListener('storage',e=>{if(e.key===KEY){rd();onMK()}});
 if(!X.since)X.since=Date.now();if(X.on===undefined)X.on=ticking();
-sync();render();setInterval(()=>{sync();tickPos();},250);setInterval(render,2000);
+sync();render();setInterval(()=>{rd();onMK()},1000);setInterval(()=>{sync();tickPos();},250);setInterval(render,2000);
 </script>
 <script>/* Matchklocka i headern: läser matchklockans state (BroadcastChannel/localStorage). Grön när klockan går. */
 (()=>{const KEY='matchklocka_state_v1';let S=null;const rd=()=>{try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}};rd();

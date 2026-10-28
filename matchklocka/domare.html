@@ -41,10 +41,10 @@ function render(s){const run=s.clock.running;$('hc').innerHTML=esc(MK.pshort(s.p
   const kv=[],h=[];
   list.forEach(e=>{const r=spFor(s,e,sp)||{},tm=esc(e.el);
     if(e.typ==='Mål'){const sc=who(s,e.t,r.sc),a=[who(s,e.t,r.a1),who(s,e.t,r.a2)].filter(Boolean);
-      h.push(`<div class="ev g"><div class="r1"><span class="k"><span class="lb">MÅL</span> – ${esc(team(s,e.t))}</span><span>${tm}</span></div><div class="big">${sc||'Målskytt ej registrerad'}</div><div class="sm">${a.length?a.map((x,i)=>'<span class="lb">A'+(i+1)+':</span> '+x).join('&nbsp;&nbsp;·&nbsp;&nbsp;'):'Ingen assist'}</div></div>`)}
+      h.push(`<div class="ev g"><div class="r1"><span class="k"><span class="lb">MÅL</span> – ${esc(team(s,e.t))}</span></div><div class="big">${sc||'Målskytt ej registrerad'}</div><div class="sm">${a.length?a.map((x,i)=>'<span class="lb">A'+(i+1)+':</span> '+x).join('&nbsp;&nbsp;·&nbsp;&nbsp;'):'Ingen assist'}</div></div>`)}
     else{const line=`${who(s,e.t,r.pl,e.nr)||'#?'} ${esc(team(s,e.t))} ${esc(e.lbl||e.min)} min`;
       if(e.coin){kv.push(line);return}
-      h.push(`<div class="ev p"><div class="r1"><span class="k">UTVISNING – ${esc(team(s,e.t))}</span><span>${tm}</span></div><div class="big">${who(s,e.t,r.pl,e.nr)||'#?'} · ${esc(e.lbl||e.min)} min</div>${r.pt?`<div class="sm">${esc(r.pt)}</div>`:''}</div>`)}});
+      h.push(`<div class="ev p"><div class="r1"><span class="k">UTVISNING – ${esc(team(s,e.t))}</span></div><div class="big">${who(s,e.t,r.pl,e.nr)||'#?'} · ${esc(e.lbl||e.min)} min</div>${r.pt?`<div class="sm">${esc(r.pt)}</div>`:''}</div>`)}});
   if(kv.length)h.push(`<div class="kv">(Kvittas: ${kv.join(' – ')})</div>`);
   $('list').innerHTML=h.join('')||'<div class="none">Inga mål eller utvisningar i denna avblåsning</div>'}
 MK.view(render);

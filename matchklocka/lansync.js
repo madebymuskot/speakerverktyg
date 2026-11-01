@@ -4,7 +4,8 @@
    Sidorna ändras knappt: inkommande ändringar skrivs till localStorage och skickas som samma storage-/BroadcastChannel-händelser som sidorna redan lyssnar på.
    Konflikter: senaste skrivning vinner (tidsstämplar i hubbens tid). Klockans state (matchklocka_state_v1) får bara skrivas av Klocka (role=klocka).
    Klockskev: hubben ger serverns tid; Date.now()/new Date() utan argument korrigeras med mätt offset så att alla enheter räknar samma speltid.
-   <script src="lansync.js" data-role="klocka|klient" data-indicator="1"> – indikator (liten ruta nere till vänster) bara på operatörssidor. ?landebug=1 visar den överallt. */
+   <script src="lansync.js" data-role="klocka|klient" data-indicator="1"> – indikator (liten ruta nere till vänster) bara på operatörssidor. ?landebug=1 visar den överallt.
+   Puls (heartbeat): hubben skickar {t:'hb'} varje sekund med Klockas fulla läge. Klient som inte hört något på HB_TIMEOUT ms visar markeringen 'frånkopplad' (bara sidor med data-marker="1": omklädningsrum, domarskärm, jumbotron; aldrig NDI/TV/?ndi/?bg). Klockan fortsätter räkna lokalt (fryser inte); markeringen försvinner och läget synkas om när pulsen kommer tillbaka. */
 (()=>{
 if(window.LANSYNC)return;
 const SC=document.currentScript,DS=(SC&&SC.dataset)||{},ROLE=DS.role||'klient',PAGE=(location.pathname.split('/').pop()||'index').replace(/\.html$/,'');
@@ -33,6 +34,7 @@ const setOff=(o,rtt)=>{samples.push({o,rtt});if(samples.length>6)samples.shift()
 /* ---------- meta (tidsstämpel per nyckel) ---------- */
 let meta={};try{meta=JSON.parse(gi('lansync_meta'))||{}}catch(e){}
 const saveMeta=()=>{try{origSet.call(ls,'lansync_meta',JSON.stringify(meta))}catch(e){}};
+let lastHeard=origNow(),hbSeen=false;const HB_TIMEOUT=4500;
 let applying=false,ws=null,wsOpen=false,status='conn',peers=0,tries=0,downSince=0,hubVer='',lastPong=0,rt=null,pingT=null;
 const q=Object.create(null);let qt=0;
 const send=o=>{if(!wsOpen)return false;try{ws.send(JSON.stringify(o));return true}catch(e){return false}};
@@ -59,16 +61,17 @@ function connect(){clearTimeout(rt);if(ws){try{ws.onopen=ws.onclose=ws.onerror=w
   let w;try{w=new WebSocket(WSU)}catch(e){later();return}ws=w;
   w.onopen=()=>{if(ws!==w)return;wsOpen=true;tries=0;downSince=0;lastPong=origNow();const items={};
     for(let i=0;i<ls.length;i++){const k=ls.key(i);if(!SYNC(k)||(k===KLOCKA_KEY&&ROLE!=='klocka'))continue;items[k]={v:gi(k),ts:meta[k]||0}}
-    for(const k in q){if(q[k].v==null)items[k]={v:null,ts:q[k].ts};delete q[k]}send({t:'hello',role:ROLE,page:PAGE,id:ID,items});ping();draw()};
-  w.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}
+    for(const k in q){if(q[k].v==null)items[k]={v:null,ts:q[k].ts};delete q[k]}send({t:'hello',role:ROLE,page:PAGE,lag:Q.get('lag')||'',id:ID,items});ping();draw()};
+  w.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}lastHeard=origNow();
     if(m.t==='snapshot'){hubVer=m.version||hubVer;if(m.time!=null)setOff(m.time-origNow(),400);for(const k in m.items)apply(k,m.items[k].v,m.items[k].ts);status='ok';draw()}
     else if(m.t==='set'){apply(m.k,m.v,m.ts)}
     else if(m.t==='pong'){lastPong=origNow();const t=origNow();setOff(m.s-(m.c+t)/2,t-m.c)}
+    else if(m.t==='hb'){hbSeen=true;if(m.k&&ROLE!=='klocka'&&typeof m.k.v==='string'&&gi(KLOCKA_KEY)!==m.k.v){send({t:'resync'});/* admin-logg: meddelar hubben att detta läge avvek från Klocka */apply(KLOCKA_KEY,m.k.v,m.k.ts)}}
     else if(m.t==='peers'){peers=m.n;draw()}};
   w.onclose=()=>{if(ws!==w)return;wsOpen=false;ws=null;status='retry';if(!downSince)downSince=origNow();draw();later()};w.onerror=()=>{}}
 const ID=Math.random().toString(36).slice(2,8);
 function later(){clearTimeout(rt);tries++;rt=setTimeout(connect,Math.min(3000,400*tries))}
-function ping(){clearTimeout(pingT);if(wsOpen){send({t:'ping',c:origNow()});if(origNow()-lastPong>12000){try{ws.close()}catch(e){}}}pingT=setTimeout(ping,tries?2000:4000)}
+function ping(){clearTimeout(pingT);if(wsOpen){send({t:'ping',c:origNow(),off:offSet?off:null});if(origNow()-lastPong>12000){try{ws.close()}catch(e){}}}pingT=setTimeout(ping,tries?2000:4000)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!wsOpen)connect()});
 /* ---------- indikator (bara operatörssidor) ---------- */
 let el=null;
@@ -76,11 +79,20 @@ function draw(){if(!(DS.indicator==='1'||Q.get('landebug')==='1'))return;if(!doc
   if(!el){const st=document.createElement('style');st.textContent='#lanind{position:fixed;left:6px;bottom:6px;z-index:2147483200;font:700 12px/1 system-ui,Arial,sans-serif;padding:5px 9px;border-radius:12px;pointer-events:none;letter-spacing:.3px;border:1px solid #0006;white-space:nowrap}#lanind.ok{background:#1f6f3a;color:#fff}#lanind.wait{background:#FFB000;color:#000}#lanind.off{background:#AF2E32;color:#fff;font-size:14px;padding:8px 12px;animation:lanbl 1s steps(1,end) infinite}@keyframes lanbl{50%{opacity:.35}}@media print{#lanind{display:none}}';document.head.appendChild(st);
     el=document.createElement('div');el.id='lanind';el.setAttribute('role','status');document.body.appendChild(el)}
   const down=downSince?origNow()-downSince:0;let c,t;
-  if(wsOpen&&status==='ok'){c='ok';t='LAN ansluten'+(peers>1?' · '+peers+' enheter':'')}
+  if(wsOpen&&status==='ok'&&!silent()){c='ok';t='LAN ansluten'+(peers>1?' · '+peers+' enheter':'')}
+  else if(wsOpen&&status==='ok'){c='wait';t='LAN – ingen kontakt med hubben…'}
   else if(downSince&&down>8000){c='off';t='LAN OFFLINE – ändringar delas inte'}
   else{c='wait';t=downSince?'LAN återansluter…':'LAN ansluter…'}
   if(el.className!==c)el.className=c;if(el.textContent!==t)el.textContent=t}
-setInterval(draw,1000);addEventListener('DOMContentLoaded',draw);
-window.LANSYNC={role:ROLE,page:PAGE,id:ID,host,get connected(){return wsOpen&&status==='ok'},get offset(){return off},get peers(){return peers},get hubVersion(){return hubVer},SYNC,meta:()=>meta};
+/* ---------- 'frånkopplad'-markering (puls saknas) – bara sidor med data-marker="1" ---------- */
+const silent=()=>(hbSeen||!wsOpen)&&origNow()-lastHeard>HB_TIMEOUT;
+let mk=null,mkOn=false;
+const wantMark=DS.marker==='1'&&!Q.has('ndi')&&!Q.has('bg');
+function drawMark(){if(!wantMark||!document.body)return;const on=silent();if(on===mkOn&&(mk||!on))return;mkOn=on;
+  if(!mk){const st=document.createElement('style');st.textContent='#lanmk{position:fixed;right:max(8px,.8vw);bottom:max(8px,.8vw);z-index:2147483300;font:700 clamp(12px,1.2vw,20px)/1 system-ui,Arial,sans-serif;padding:.45em .8em;border-radius:1em;background:rgba(175,46,50,.88);color:#fff;pointer-events:none;white-space:nowrap;border:1px solid #0006}#lanmk::before{content:"●";margin-right:.45em;animation:lanmkb 1.2s steps(1,end) infinite}@keyframes lanmkb{50%{opacity:.25}}@media print{#lanmk{display:none}}';document.head.appendChild(st);
+    mk=document.createElement('div');mk.id='lanmk';mk.setAttribute('role','status');mk.textContent='frånkopplad';document.body.appendChild(mk)}
+  mk.style.display=on?'':'none'}
+setInterval(draw,1000);setInterval(drawMark,500);addEventListener('DOMContentLoaded',drawMark);addEventListener('DOMContentLoaded',draw);
+window.LANSYNC={role:ROLE,page:PAGE,id:ID,host,get connected(){return wsOpen&&status==='ok'},get offset(){return off},get peers(){return peers},get silent(){return silent()},get hbSeen(){return hbSeen},get sinceHeard(){return origNow()-lastHeard},get hubVersion(){return hubVer},SYNC,meta:()=>meta};
 connect();
 })();

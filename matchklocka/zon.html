@@ -1,0 +1,82 @@
+<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><script src="lansync.js?v=20261108-1305" data-role="klient" data-indicator="1"></script><script src="reset.js?v=20261108-1305"></script><script>MKRESET.register({name:'zon',keys:['zon_v1']})</script><meta name="viewport" content="width=device-width,initial-scale=1"><title>Piteå HC – Zon &amp; tekningspunkter</title><link rel="stylesheet" href="style.css?v=20261108-1305">
+<style>body{margin:0;background:#000;color:#fff;font-family:system-ui,sans-serif}main{padding:10px;max-width:1100px;margin:0 auto}
+.top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:6px 0 10px}
+.st{font-size:20px;font-weight:800}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}header{flex-wrap:wrap}.hc{margin-left:auto;font-size:16px;font-weight:800;padding:6px 12px;border-radius:8px;background:#222;color:#aaa;white-space:nowrap}.hc.run{background:#1f7a3a;color:#fff}.hc:empty{display:none}.mut{color:#aaa;font-size:14px}
+button.sm{background:#222;color:#fff;border:1px solid #555;border-radius:8px;padding:10px 14px;font-size:15px}
+svg{width:100%;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.zone{cursor:pointer;fill:#e9f1f7;stroke:none}.zone:hover{fill:#dbe8f2}.zone.on{fill:#2fa84f}.zone:focus{outline:none;stroke:#2a7fff;stroke-width:6}
+.dot{cursor:pointer}.dot circle.hit{fill:transparent}.dot circle.d{fill:#c00;stroke:#fff;stroke-width:2}.dot.pend circle.d{fill:#2a7fff;stroke:#000;stroke-width:3}
+.dot.lock{cursor:not-allowed}.dot.lock circle.d{fill:#d9a0a0;stroke:#eee}.dot.lock.pend circle.d{fill:#2a7fff;stroke:#000}.dot:focus{outline:none}.dot:focus circle.hit{stroke:#2a7fff;stroke-width:4}
+.ln{pointer-events:none}.lab{pointer-events:none;font-weight:900;fill:#111;font-size:22px}.zl{pointer-events:none;fill:#333;font-size:15px;font-weight:700}.zl.lt{fill:#b4bcc4;font-weight:600;font-size:27.2px}
+#fo{font-size:17px;margin:8px 0;padding:10px;border-radius:8px;background:#151515}#fo.p{background:#0d2a55}
+#warn{color:#FFB000;font-weight:700}</style></head><body>
+<header><div><div id="hT">ZON</div><div id="hM">–</div></div><div id="clk" class="hc"></div></header>
+<main>
+<div class="top"><div class="sr" id="zNow" aria-live="polite"></div>
+<div><button class="sm" id="flip">⇄ Vänd vy</button> <button class="sm" id="bench">⇅ Spelarbås</button> <button class="sm" id="unk">Zon okänd</button></div></div>
+<div id="warn"></div>
+<svg id="rink" viewBox="0 0 600 270" role="group" aria-label="Rink – tryck på zonen där spelet är, eller på en tekningspunkt"></svg>
+<div id="fo"></div>
+<p class="mut">Tryck på <b>zonen</b> där spelet pågår (stor yta). Vid avblåsning (klockan står): tryck på en <b>röd punkt</b> för att markera var nästa tekning tas – punkterna är låsta medan klockan går – vinnaren registreras som vanligt i Skott &amp; innehav. Zoner följer lagen (hemmas/bortas försvarszon) och byts inte vid sidbyte; använd ⇄ för att vrida bilden så den matchar isen. Tid räknas i speltid, bara när klockan går.</p>
+<p class="mut" id="own"></p>
+</main>
+<script src="aktuell.js?v=20261108-1305"></script><script src="zon-core.js?v=20261108-1305"></script>
+<script>
+const C=ZONCORE,ZK='zon_v1',VK='zon_vy_v1',$=i=>document.getElementById(i),ME=Math.random().toString(36).slice(2);
+const J=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};const A=window.AKTUELL||null;
+let V=Object.assign({flip:false,benchTop:false},J(VK)||{});const svV=()=>{try{localStorage.setItem(VK,JSON.stringify(V))}catch(e){}};
+const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const team=(S,t)=>(S&&S.clock&&(S.short&&S.short[t]||(t?S.away:S.home)))||(A&&A.teams[t]&&A.teams[t].name)||(t?'Borta':'Hemma');
+/* Kort lagnamn för zonetiketten: kortnamn från Klocka om det finns, annars försiktig borttagning av klubbsuffix (aldrig tomt). */
+const SUF=/\s+(hockey\s*klubb|hockeyklubb|hockey\s*club|hockey|hc|hk|if|ik|sk|bk|ff)$/i;
+const shortT=(S,t)=>{const k=S&&S.short&&S.short[t];if(k)return k;let n=String(team(S,t)).trim(),m;while((m=n.replace(SUF,''))!==n&&m.trim())n=m.trim();return n};
+const ZNAME=(S,z)=>z==='hd'?'Försvarszon '+team(S,0):z==='bd'?'Försvarszon '+team(S,1):z==='nz'?'Neutral zon':'okänd';
+const DN=(S,d)=>{if(!d)return'';if(d==='c')return'Mittpunkten';const side=d.endsWith('1')?'båssidan':'bortre sidan';
+ return(d[0]==='n'?'Neutral punkt vid '+team(S,d[1]==='h'?0:1)+'s blålinje':'Punkt i '+team(S,d[0]==='h'?0:1)+'s försvarszon')+', '+side};
+/* geometri i "hemma vänster, bås nere"; vy-transform vid ritning */
+const X0=x=>V.flip?600-x:x,Y0=y=>V.benchTop?270-y:y;
+const DP={h1:[105,195],h2:[105,75],nh1:[235,195],nh2:[235,75],c:[300,135],nb1:[365,195],nb2:[365,75],b1:[495,195],b2:[495,75]};
+let Z=null,S=null,Xs=null;
+function load(){Z=C.init(J(ZK));S=J('matchklocka_state_v1');Xs=J('skott_v1')}
+const save=()=>{try{localStorage.setItem(ZK,JSON.stringify(Z))}catch(e){}};
+function own(now){if(Z.owner!==ME&&Z.owner&&now-(Z.hb||0)<4000)return false;Z.owner=ME;Z.hb=now;return true}
+function tick(){load();const now=Date.now(),hb0=Z.hb||0,o0=Z.owner,b=JSON.stringify(Object.assign({},Z,{hb:0,last:Z.last&&Z.last.k}));if(own(now)){C.step(Z,S,Xs,now);
+ const a=JSON.stringify(Object.assign({},Z,{hb:0,last:Z.last&&Z.last.k}));/* när klockan står: spara bara vid ändring eller hjärtslag */
+ if(a!==b||o0!==ME||now-hb0>1500||C.running(S,now))save();else Z.hb=hb0}render()}
+function act(f){load();const now=Date.now();Z.owner=ME;Z.hb=now;C.step(Z,S,Xs,now);const r=f(now);save();render(r)}
+function draw(){const zr=(z,x1,x2)=>{const a=Math.min(X0(x1),X0(x2)),w=Math.abs(x2-x1);return `<rect class="zone" data-z="${z}" tabindex="0" role="button" x="${a}" y="10" width="${w}" height="250"/>`};
+ let h=`<clipPath id="cp"><rect x="5" y="10" width="590" height="250" rx="70"/></clipPath><g clip-path="url(#cp)">${zr('hd',5,210)}${zr('nz',210,390)}${zr('bd',390,595)}</g>`;
+ h+=`<g class="ln"><rect x="5" y="10" width="590" height="250" rx="70" fill="none" stroke="#111" stroke-width="4"/>`+
+  [[210,'#1f4fbf',8],[390,'#1f4fbf',8],[300,'#c00',5],[35,'#c00',3],[565,'#c00',3]].map(([x,c,w])=>`<line x1="${X0(x)}" y1="12" x2="${X0(x)}" y2="258" stroke="${c}" stroke-width="${w}"/>`).join('')+
+  `<circle cx="300" cy="135" r="34" fill="none" stroke="#1f4fbf" stroke-width="2"/>`+[[105,195],[105,75],[495,195],[495,75]].map(([x,y])=>`<circle cx="${X0(x)}" cy="${Y0(y)}" r="32" fill="none" stroke="#c00" stroke-width="2"/>`).join('')+
+  `</g>`;
+ h+=`<text class="zl lt" x="${X0(108)}" y="${Y0(135)+12}" text-anchor="middle" id="l_hd"></text><text class="zl lt" x="${X0(492)}" y="${Y0(135)+12}" text-anchor="middle" id="l_bd"></text>`;
+ h+=`<text class="zl" x="300" y="${V.benchTop?8:268}" text-anchor="middle" style="font-size:11px">SPELARBÅS</text>`;
+ h+=Object.entries(DP).map(([d,[x,y]])=>`<g class="dot" data-d="${d}" tabindex="0" role="button" aria-label="Tekningspunkt"><circle class="hit" cx="${X0(x)}" cy="${Y0(y)}" r="22"/><circle class="d" cx="${X0(x)}" cy="${Y0(y)}" r="${d==='c'?8:10}"/></g>`).join('');
+ $('rink').innerHTML=h;
+ $('rink').querySelectorAll('.zone').forEach(e=>{const f=ev=>{ev.preventDefault();act(()=>C.setZone(Z,e.dataset.z,S))};e.addEventListener('click',f);e.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' ')f(ev)})});
+ $('rink').querySelectorAll('.dot').forEach(e=>{const f=ev=>{ev.preventDefault();ev.stopPropagation();act(now=>C.setDot(Z,e.dataset.d,S,now))};e.addEventListener('click',f);e.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' ')f(ev)})});
+ render()}
+let msg='';
+function render(r){if(!Z)return;const now=Date.now();
+ if(r==='ignored')msg='Ingen aktiv period i Klocka – punkten sparades inte.';else if(r==='locked')msg='Tekningspunkt väljs först vid avblåsning (när klockan står).';else if(r==='linked')msg='Punkten kopplad till tekningen.';else if(r)msg='';
+ $('hM').textContent=team(S,0)+' – '+team(S,1);
+ $('l_hd').textContent=shortT(S,0);$('l_bd').textContent=shortT(S,1);
+ document.querySelectorAll('.zone').forEach(e=>e.classList.toggle('on',e.dataset.z===Z.z));
+ $('zNow').textContent='Aktiv zon: '+ZNAME(S,Z.z);document.querySelectorAll('.zone').forEach(e=>e.setAttribute('aria-label',ZNAME(S,e.dataset.z)+(e.dataset.z===Z.z?' (aktiv)':'')));
+ const run=C.running(S,now),ok=C.live(S,now)&&/^(P[1-3]|OT)$/.test(S&&S.period);
+ $('clk').textContent=ok?(S.period+' · '+(run?'Klockan går':'Klockan står')):'';$('clk').classList.toggle('run',run);
+ $('warn').textContent=!C.live(S,now)?'Matchklockan hittas inte – zon och punkter räknas bara när Klocka är igång (samma webbläsare eller via LAN-hubben).':!ok?'Ingen period pågår ('+(S.period||'')+').':(!Xs?'Skott & innehav har ingen data – innehav per zon blir "okänt".':'');
+ const pd=Z.pend&&Z.pend.dot;const lk=C.dotLocked(S,now);document.querySelectorAll('.dot').forEach(e=>{e.classList.toggle('pend',e.dataset.d===pd);e.classList.toggle('lock',lk);e.setAttribute('aria-disabled',lk?'true':'false')});
+ const last=Z.fo.length?Z.fo[Z.fo.length-1]:null;let f='';
+ if(pd)f=`<b>Tekningspunkt vald:</b> ${esc(DN(S,pd))} – ${Z.pend.k?'väntar på vinnare i Skott & innehav':'kopplas till nästa tekning (när klockan startar)'}`;
+ else if(last&&last.per===(S&&S.period))f=`Senaste tekning: <b>${esc(team(S,last.w))}</b> vann – ${last.dot?esc(DN(S,last.dot)):'<span id="warn">punkt ej vald</span>'}`;
+ else f='Ingen tekningspunkt vald.';
+ if(msg)f+=`<div class="mut">${esc(msg)}</div>`;
+ $('fo').innerHTML=f;$('fo').classList.toggle('p',!!pd);
+ $('own').textContent=Z.owner===ME?'Denna enhet räknar zontiden.':'En annan öppen zonsida räknar zontiden – denna enhet tar över vid tryck.'}
+$('flip').onclick=()=>{V.flip=!V.flip;svV();draw()};$('bench').onclick=()=>{V.benchTop=!V.benchTop;svV();draw()};
+$('unk').onclick=()=>act(()=>C.setZone(Z,null,S));
+load();draw();tick();setInterval(tick,250);
+addEventListener('storage',e=>{if(e.key===ZK)render()});
+</script><footer style="color:#777;font-size:12px;text-align:center;margin:24px 0 10px;opacity:.8">© 2026 Daniel Elfström</footer></body></html>

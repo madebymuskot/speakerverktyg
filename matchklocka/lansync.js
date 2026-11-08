@@ -5,6 +5,7 @@
    Konflikter: senaste skrivning vinner (tidsstämplar i hubbens tid). Klockans state (matchklocka_state_v1) får bara skrivas av Klocka (role=klocka).
    Klockskev: hubben ger serverns tid; Date.now()/new Date() utan argument korrigeras med mätt offset så att alla enheter räknar samma speltid.
    <script src="lansync.js" data-role="klocka|klient" data-indicator="1"> – indikator (liten ruta nere till vänster) bara på operatörssidor. ?landebug=1 visar den överallt.
+   En-instans-spärr: hubben tillåter bara EN öppen Klocka, Speaker, Skott/innehav och På isen per lag (OVR och visningsskärmar obegränsat). Nekad sida får {t:'busy'} och visar en heltäckande ruta ('Försök igen' + automatiska försök var 3:e s); hubben ignorerar all skrivning från den. Samma flik som laddas om känns igen på cid (sessionStorage) och tar tillbaka sin plats direkt. Utan hubb (file://, ingen LAN) görs inget av detta.
    Puls (heartbeat): hubben skickar {t:'hb'} varje sekund med Klockas fulla läge. Klient som inte hört något på HB_TIMEOUT ms visar markeringen 'frånkopplad' (bara sidor med data-marker="1": omklädningsrum, domarskärm, jumbotron; aldrig NDI/TV/?ndi/?bg). Klockan fortsätter räkna lokalt (fryser inte); markeringen försvinner och läget synkas om när pulsen kommer tillbaka. */
 (()=>{
 if(window.LANSYNC)return;
@@ -22,7 +23,7 @@ if(location.protocol==='https:'&&!/^(localhost|127\.0\.0\.1)(:|$)/.test(host))re
 const HTTP='http://'+host,WSU='ws://'+host+'/lan';
 const KLOCKA_KEY='matchklocka_state_v1';
 /* Vilka nycklar som delas (samma lista i hubben). Medvetet INTE: matchklocka_tv_v1 (TV-utgångens inställningar hör till den Klocka som kör bridgen), fullt_seen/tleft_seen (påminnelseflaggor per enhet). */
-const SYNC=k=>typeof k==='string'&&(k===KLOCKA_KEY||k==='paisen_v1'||k==='paisen_override'||k==='skott_v1'||/^speakerapp_(protokoll|override|lineup)_/.test(k)||k==='matchklocka_reset_v1'||/^matchklocka_nrfix_v1_/.test(k)||/^publik_/.test(k));
+const SYNC=k=>typeof k==='string'&&(k===KLOCKA_KEY||k==='paisen_v1'||k==='paisen_override'||k==='skott_v1'||k==='zon_v1'||/^speakerapp_(protokoll|override|lineup)_/.test(k)||k==='matchklocka_reset_v1'||/^matchklocka_nrfix_v1_/.test(k)||/^publik_/.test(k));
 const ls=localStorage,origSet=Storage.prototype.setItem,origRem=Storage.prototype.removeItem,origGet=Storage.prototype.getItem;
 const gi=k=>{try{return origGet.call(ls,k)}catch(e){return null}};
 /* ---------- tid: hubbens klocka ---------- */
@@ -59,17 +60,44 @@ Storage.prototype.removeItem=function(k){origRem.call(this,k);if(this===ls&&!app
 /* ---------- WebSocket ---------- */
 function connect(){clearTimeout(rt);if(ws){try{ws.onopen=ws.onclose=ws.onerror=ws.onmessage=null;ws.close()}catch(e){}ws=null}wsOpen=false;
   let w;try{w=new WebSocket(WSU)}catch(e){later();return}ws=w;
-  w.onopen=()=>{if(ws!==w)return;wsOpen=true;tries=0;downSince=0;lastPong=origNow();const items={};
-    for(let i=0;i<ls.length;i++){const k=ls.key(i);if(!SYNC(k)||(k===KLOCKA_KEY&&ROLE!=='klocka'))continue;items[k]={v:gi(k),ts:meta[k]||0}}
-    for(const k in q){if(q[k].v==null)items[k]={v:null,ts:q[k].ts};delete q[k]}send({t:'hello',role:ROLE,page:PAGE,lag:Q.get('lag')||'',id:ID,items});ping();draw()};
+  w.onopen=()=>{if(ws!==w)return;wsOpen=true;tries=0;downSince=0;lastPong=origNow();sendHello();ping();draw()};
   w.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}lastHeard=origNow();
     if(m.t==='snapshot'){hubVer=m.version||hubVer;if(m.time!=null)setOff(m.time-origNow(),400);for(const k in m.items)apply(k,m.items[k].v,m.items[k].ts);status='ok';draw()}
     else if(m.t==='set'){apply(m.k,m.v,m.ts)}
     else if(m.t==='pong'){lastPong=origNow();const t=origNow();setOff(m.s-(m.c+t)/2,t-m.c)}
-    else if(m.t==='hb'){hbSeen=true;if(m.k&&ROLE!=='klocka'&&typeof m.k.v==='string'&&gi(KLOCKA_KEY)!==m.k.v){send({t:'resync'});/* admin-logg: meddelar hubben att detta läge avvek från Klocka */apply(KLOCKA_KEY,m.k.v,m.k.ts)}}
-    else if(m.t==='peers'){peers=m.n;draw()}};
+    else if(m.t==='hb'){hbSeen=true;if(m.k&&(ROLE!=='klocka'||busy)&&typeof m.k.v==='string'&&gi(KLOCKA_KEY)!==m.k.v){send({t:'resync'});/* admin-logg: meddelar hubben att detta läge avvek från Klocka */apply(KLOCKA_KEY,m.k.v,m.k.ts)}}
+    else if(m.t==='peers'){peers=m.n;draw()}
+    else if(m.t==='busy'){showBusy(m)}
+    else if(m.t==='ok'){hideBusy(m.reload)}
+    else if(m.t==='ledig'){if(busy)busyRetry()}};
   w.onclose=()=>{if(ws!==w)return;wsOpen=false;ws=null;status='retry';if(!downSince)downSince=origNow();draw();later()};w.onerror=()=>{}}
 const ID=Math.random().toString(36).slice(2,8);
+/* cid: flikens id (sessionStorage) – överlever omladdning så att hubben ger tillbaka platsen direkt */
+let CID='';try{CID=sessionStorage.getItem('lansync_cid')||''}catch(e){}
+if(!CID){CID=Math.random().toString(36).slice(2,12);try{sessionStorage.setItem('lansync_cid',CID)}catch(e){}}
+function newCid(){CID=Math.random().toString(36).slice(2,12);try{sessionStorage.setItem('lansync_cid',CID)}catch(e){}}
+function sendHello(){const items={};
+  for(let i=0;i<ls.length;i++){const k=ls.key(i);if(!SYNC(k)||(k===KLOCKA_KEY&&ROLE!=='klocka'))continue;items[k]={v:gi(k),ts:meta[k]||0}}
+  for(const k in q){if(q[k].v==null)items[k]={v:null,ts:q[k].ts};delete q[k]}
+  return send({t:'hello',role:ROLE,page:PAGE,lag:Q.get('lag')||'',id:ID,cid:CID,items})}
+/* ---------- en-instans-spärr: heltäckande ruta ---------- */
+let busy=null,busyT=null,busyEl=null;
+const TFMT=ms=>{try{return new Date(ms).toLocaleTimeString('sv-SE',{timeZone:'Europe/Stockholm',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
+function busyRetry(){clearTimeout(busyT);busyT=null;if(busy&&wsOpen)sendHello()}
+function showBusy(m){busy=m;if(m.orsak==='overtagen')newCid(); /* samma flik-id används av den som tog över – byt, annars kapar vi tillbaka platsen */
+  clearTimeout(busyT);busyT=m.manuell?null:setTimeout(busyRetry,3000);drawBusy()}
+function hideBusy(reload){clearTimeout(busyT);busyT=null;const was=busy;busy=null;if(busyEl)busyEl.style.display='none';if(was&&reload){try{location.reload()}catch(e){}}}
+function drawBusy(){if(!busy)return;if(!document.body){addEventListener('DOMContentLoaded',drawBusy,{once:true});return}
+  if(!busyEl){const st=document.createElement('style');st.textContent='#lanbusy{position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483600;background:#0b0b0b;color:#fff;display:flex;align-items:center;justify-content:center;padding:4vmin;font-family:-apple-system,Segoe UI,Roboto,system-ui,Arial,sans-serif;text-align:left;overflow:auto}#lanbusy .bx{max-width:760px;width:100%;background:#151515;border-left:10px solid #AF2E32;border-radius:14px;padding:5vmin}#lanbusy h1{margin:0 0 .5em;font-size:clamp(24px,4.4vmin,44px);line-height:1.15}#lanbusy .dv{font-size:clamp(17px,2.6vmin,26px);color:#ddd;margin:.2em 0}#lanbusy .dv b{color:#fff}#lanbusy .no{font-size:clamp(18px,2.8vmin,28px);font-weight:800;margin:.9em 0 .3em;color:#fff}#lanbusy .hint{font-size:clamp(13px,1.9vmin,18px);color:#9a9a9a;margin:.2em 0 1em}#lanbusy button{background:#222;color:#fff;border:1px solid #555;border-radius:8px;padding:.55em 1.1em;font:600 clamp(14px,2vmin,20px) inherit;font-family:inherit;cursor:pointer}#lanbusy button:hover{background:#AF2E32;border-color:#AF2E32}';document.head.appendChild(st);
+    busyEl=document.createElement('div');busyEl.id='lanbusy';busyEl.setAttribute('role','alertdialog');busyEl.setAttribute('aria-modal','true');document.body.appendChild(busyEl);
+    busyEl.addEventListener('click',e=>{if(e.target&&e.target.id==='lanbusy-retry'){e.target.disabled=true;setTimeout(()=>{e.target.disabled=false},1500);if(wsOpen)sendHello();else connect()}});
+    for(const ev of['keydown','keyup','keypress'])addEventListener(ev,e=>{if(busy&&!(busyEl&&busyEl.contains(e.target))){e.stopImmediatePropagation();e.preventDefault()}},true)}
+  const m=busy,esc=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let det;if(m.orsak==='slappt')det='Platsen släpptes av en administratör.';
+  else if(m.ip)det='Öppen på: <b>'+esc(m.enhet||'annan enhet')+'</b> ('+esc(m.ip)+')'+(m.sedan?' sedan '+esc(TFMT(m.sedan)):'');
+  else det='Platsen hålls av en annan enhet.';
+  busyEl.innerHTML='<div class="bx"><h1>'+esc(m.namn||'Sidan')+' är redan öppen på en annan enhet</h1><div class="dv">'+det+'</div><div class="no">Den här sidan kan inte öppnas.</div><div class="hint">'+(m.manuell?'Tryck på Försök igen när du vill ta över platsen.':'Väntar på att den blir ledig – försöker automatiskt var 3:e sekund.')+'</div><button id="lanbusy-retry" type="button">Försök igen</button></div>';
+  busyEl.style.display='flex'}
 function later(){clearTimeout(rt);tries++;rt=setTimeout(connect,Math.min(3000,400*tries))}
 function ping(){clearTimeout(pingT);if(wsOpen){send({t:'ping',c:origNow(),off:offSet?off:null});if(origNow()-lastPong>12000){try{ws.close()}catch(e){}}}pingT=setTimeout(ping,tries?2000:4000)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!wsOpen)connect()});
@@ -92,7 +120,7 @@ function drawMark(){if(!wantMark||!document.body)return;const on=silent();if(on=
   if(!mk){const st=document.createElement('style');st.textContent='#lanmk{position:fixed;right:max(8px,.8vw);bottom:max(8px,.8vw);z-index:2147483300;font:700 clamp(12px,1.2vw,20px)/1 system-ui,Arial,sans-serif;padding:.45em .8em;border-radius:1em;background:rgba(175,46,50,.88);color:#fff;pointer-events:none;white-space:nowrap;border:1px solid #0006}#lanmk::before{content:"●";margin-right:.45em;animation:lanmkb 1.2s steps(1,end) infinite}@keyframes lanmkb{50%{opacity:.25}}@media print{#lanmk{display:none}}';document.head.appendChild(st);
     mk=document.createElement('div');mk.id='lanmk';mk.setAttribute('role','status');mk.textContent='frånkopplad';document.body.appendChild(mk)}
   mk.style.display=on?'':'none'}
-setInterval(draw,1000);setInterval(drawMark,500);addEventListener('DOMContentLoaded',drawMark);addEventListener('DOMContentLoaded',draw);
-window.LANSYNC={role:ROLE,page:PAGE,id:ID,host,get connected(){return wsOpen&&status==='ok'},get offset(){return off},get peers(){return peers},get silent(){return silent()},get hbSeen(){return hbSeen},get sinceHeard(){return origNow()-lastHeard},get hubVersion(){return hubVer},SYNC,meta:()=>meta};
+setInterval(()=>{draw();if(busy&&!wsOpen&&downSince&&origNow()-downSince>8000)hideBusy(false)},1000);setInterval(drawMark,500);addEventListener('DOMContentLoaded',drawMark);addEventListener('DOMContentLoaded',draw);
+window.LANSYNC={role:ROLE,page:PAGE,id:ID,host,get connected(){return wsOpen&&status==='ok'},get offset(){return off},get peers(){return peers},get silent(){return silent()},get hbSeen(){return hbSeen},get busy(){return busy},get sinceHeard(){return origNow()-lastHeard},get hubVersion(){return hubVer},SYNC,meta:()=>meta};
 connect();
 })();

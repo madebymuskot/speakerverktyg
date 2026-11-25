@@ -1,0 +1,56 @@
+<!doctype html><html lang="sv"><head><script src="demo-stub.js"></script><link rel="icon" href="favicon.svg" type="image/svg+xml"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><script src="lansync.js?v=20261114-1452" data-role="klient" data-marker="1"></script><meta name="viewport" content="width=device-width,initial-scale=1"><title>Matchklocka – Domarskärm</title><link rel="stylesheet" href="style.css?v=20261114-1452"><style>
+html,body{background:#05070b;color:#fff;margin:0;height:100%;overflow:hidden}
+body{font-family:system-ui,Arial,sans-serif;display:flex;flex-direction:column;padding:2.2vh 3vw;box-sizing:border-box}
+#hd{flex-wrap:wrap;column-gap:2vw;display:flex;justify-content:space-between;align-items:baseline;border-bottom:.4vh solid #333;padding-bottom:1vh;font-weight:900}
+#hd .t{font-size:clamp(22px,3.4vw,64px);color:#FFB000}#hd .c{font-size:clamp(26px,4.2vw,80px)}#hd .kvr{font-size:clamp(10px,1.4vw,27px);font-weight:800;color:#ccc}#hd .hk{font-size:clamp(52px,min(8.4vw,15vh),160px);line-height:1}#hd .hk.stp{color:#FF4136}#hd .hk.run{color:#5f5}
+#list{flex:1;overflow:hidden;padding-top:1.6vh;display:flex;flex-direction:column;gap:1.6vh}
+.ev{border-left:1.4vw solid #888;background:#11151d;padding:1.2vh 1.6vw;border-radius:.6vw}
+.ev.g{border-color:#2ecc71}.ev.p{border-color:#ff4d4d}
+.r1{display:flex;justify-content:space-between;gap:2vw;font-size:clamp(20px,2.6vw,50px);font-weight:900;color:#ccc}
+.r1 .k{color:#fff}.big{font-size:clamp(28px,4vw,76px);font-weight:900;line-height:1.1}
+.sm{font-size:clamp(20px,2.7vw,52px);font-weight:800;color:#e6e6e6}
+.lb{color:#FFC233}.kv{font-size:clamp(20px,2.6vw,50px);font-weight:900;color:#FFD166;padding:.6vh .4vw}
+#idle{flex:1;display:grid;place-items:center;text-align:center}#idle .p{font-size:clamp(30px,5vw,96px);font-weight:900;color:#FFB000}#idle .c{font-size:clamp(80px,16vw,300px);font-weight:900;line-height:1}#idle .s{font-size:clamp(20px,2.6vw,50px);color:#aaa;font-weight:800}
+.none{font-size:clamp(24px,3vw,56px);color:#aaa;font-weight:800;text-align:center;margin-top:10vh}
+#ban{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:2vw;margin-top:1.6vh;padding:1vh 1.6vw;background:#FFB000;color:#000;border-radius:.6vw;font-weight:900}#ban .bl{font-size:clamp(28px,4vw,76px);line-height:1.1}#ban .bt{font-size:clamp(56px,min(11vw,18vh),210px);line-height:1}
+#ban.full{flex:1;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1.6vh}#ban.full .bt{font-size:clamp(100px,min(22vw,40vh),420px)}
+[hidden]{display:none!important}.demobadge{display:inline-block;margin-left:10px;background:#FFB000;color:#000;font:800 13px/1 system-ui,Arial,sans-serif;padding:5px 8px;border-radius:6px;letter-spacing:1px;vertical-align:middle}#demofoot{color:#777;font-size:12px;text-align:center;margin:24px 0 10px;opacity:.8}#jumbolink{font-size:16px;font-weight:700;margin:8px 0 0}#jumbolink a{color:#FFB000}#demomark{position:fixed;left:8px;top:8px;z-index:2147483000;background:#FFB000;color:#000;font:800 12px/1 system-ui,Arial,sans-serif;padding:5px 8px;border-radius:6px;letter-spacing:1px;pointer-events:none;opacity:.9}#demofootj{position:fixed;left:0;right:0;bottom:4px;z-index:2147483000;color:#777;font:12px/1 system-ui,Arial,sans-serif;text-align:center;opacity:.7;pointer-events:none}</style></head><body><div id="demomark">DEMO</div><div id="demofootj">© 2026 Daniel Elfström · Demo</div><div id="hd"><span class="t">AKTUELL AVBLÅSNING</span><span class="c tnum" id="hc"></span></div><div id="ban" hidden></div><div id="list"></div><div id="idle" hidden><div><div class="p" id="ip"></div><div class="c tnum" id="ic"></div><div class="s" id="is"></div></div></div>
+<script src="clock.js?v=20261114-1452"></script><script>MK.gate('domare','black')</script><script>
+const $=i=>document.getElementById(i),esc=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const NPp=p=>{p=String(p==null?'':p).toUpperCase().replace(/^P/,'');return p==='OT'||p==='4'?'OT':p?'P'+p:''};
+const SECr=t=>{const m=/(\d+):(\d{1,2})/.exec(String(t||''));return m?+m[1]*60+ +m[2]:null};
+// Speaker-tid kan vara periodtid eller totaltid -> normalisera till periodtid
+const PT=(s,x,per)=>{let v=SECr(x);if(v==null)return null;const L=(s.len.P||20)*60,n=per==='OT'?3:(+String(per).slice(1)||1)-1;if(v>L&&n>0)v-=n*L;return v};
+const SPK=s=>{if(!s.gid)return[];try{return JSON.parse(localStorage.getItem('speakerapp_protokoll_'+s.gid))||[]}catch(e){return[]}};
+const team=(s,t)=>t?s.away:s.home;
+const pname=(s,t,no)=>{if(!no)return'';const r=((s.rosters||[])[t]||[]).find(p=>String(p.no)===String(no));return r?(r.name||[r.first||r.fn,r.last||r.ln].filter(Boolean).join(' ')):''};
+const who=(s,t,o,no)=>{no=(o&&o.no)||no;if(!no)return'';const n=(o&&o.name)||pname(s,t,no);return '#'+esc(no)+(n?' '+esc(n):'')};
+// Aktuell avblåsning: klockan står still (efter MK.stop -> s.lastStop) och händelser registrerade från stoppet
+// (ts >= lastStop.at) eller på samma speltid/period som stoppet (registrerade precis före stopp på samma tid ±3 s).
+function stoppage(s){const L=s.lastStop;if(!L)return null;const rs=Math.round(L.remain/1000);
+  return (s.ev||[]).filter(e=>!e.del&&(e.typ==='Mål'||e.typ==='Utvisning')&&(e.ts>=L.at||(e.per===L.period&&Math.abs(SECr(e.rem)-rs)<=3))).map(e=>e.typ==='Utvisning'?Object.assign({},e,{coin:isCoin(s,e)}):e)}
+// Kvittad = kryssrutan "Kvittas" i Klocka (sätts på straffet i s.pens[lag], speglas på händelsen e.coin). Läs båda.
+function isCoin(s,e){if(e.coin)return true;const A=(s.pens||[])[e.t]||[];return !!(e.pids||[]).some(id=>A.some(p=>p.id===id&&p.coin))}
+function spFor(s,e,sp){// matcha speaker-rad: mål via ev-id, annars samma lag+typ+period+tid (±10 s), utvisning även nr
+  const x=sp.find(r=>r.ev&&r.ev===e.id);if(x)return x;const es=SECr(e.el);
+  return sp.find(r=>r.typ===e.typ&&+r.lag===e.t&&NPp(r.per)===e.per&&Math.abs((PT(s,r.tid,e.per)??-99)-es)<=10&&(e.typ!=='Utvisning'||!e.nr||!r.pl||String(r.pl.no)===String(e.nr)))}
+let last='';
+function render(s){const run=s.clock.running;
+  const cur=MK.current(s),bn=cur==='timeout'?['TIMEOUT – '+team(s,s.timeout.team),MK.fmtP(MK.cd(s.timeout))]:cur==='powerbreak'?['POWERBREAK',MK.fmtP(MK.cd(s.pb))]:cur==='paus'?['PAUS'+(MK.openPause(s)?' – väntar på domare':s.next?' – nästa '+s.next:''),MK.fmtShown(s)]:null;
+  if(bn){const k=bn.join('|');if($('ban').dataset.k!==k){$('ban').dataset.k=k;$('ban').innerHTML='<span class="bl">'+esc(bn[0])+'</span><span class="bt tnum">'+esc(bn[1])+'</span>'}$('ban').hidden=false}else{$('ban').hidden=true;$('ban').dataset.k=''}
+$('hc').innerHTML=esc(MK.pshort(s.period))+' · <span class="hk '+(run?'run':'stp')+'">'+(s.period==='PAUS'?MK.fmtP(MK.remain(s)):MK.evT(s).el)+'</span>';
+  const list=run?null:stoppage(s);
+  if(!list){$('list').hidden=true;$('hd').hidden=true;$('idle').hidden=(cur==='paus');$('ban').classList.toggle('full',cur==='paus');$('ip').textContent=MK.pname(s.period).toUpperCase();$('ic').textContent=MK.fmtP(MK.remain(s));$('is').textContent=s.home+'  '+s.goals[0]+' – '+s.goals[1]+'  '+s.away;return}
+  $('ban').classList.remove('full');$('list').hidden=false;$('hd').hidden=false;$('idle').hidden=true;
+  const sp=SPK(s),key=JSON.stringify([list,sp.length,s.v]);if(key===last)return;last=key;
+  const kv=[],h=[];
+  list.forEach(e=>{const r=spFor(s,e,sp)||{},tm=esc(e.el);
+    if(e.typ==='Mål'){const sc=who(s,e.t,r.sc),a=[who(s,e.t,r.a1),who(s,e.t,r.a2)].filter(Boolean);
+      h.push(`<div class="ev g"><div class="r1"><span class="k"><span class="lb">MÅL</span> – ${esc(team(s,e.t))}</span></div><div class="big">${sc||'Målskytt ej registrerad'}</div><div class="sm">${a.length?a.map((x,i)=>'<span class="lb">A'+(i+1)+':</span> '+x).join('&nbsp;&nbsp;·&nbsp;&nbsp;'):'Ingen assist'}</div></div>`)}
+    else{const line=`${who(s,e.t,r.pl,e.nr)||'#?'} ${esc(team(s,e.t))} ${esc(e.lbl||e.min)} min`;
+      if(e.coin){kv.push(line);return}
+      h.push(`<div class="ev p"><div class="r1"><span class="k">UTVISNING – ${esc(team(s,e.t))}</span></div><div class="big">${who(s,e.t,r.pl,e.nr)||'#?'} · ${esc(e.lbl||e.min)} min</div>${r.pt?`<div class="sm">${esc(r.pt)}</div>`:''}</div>`)}});
+  if(kv.length)h.push(`<div class="kv">(Kvittas: ${kv.join(' – ')})</div>`);
+  $('list').innerHTML=h.join('')||'<div class="none">Inga mål eller utvisningar i denna avblåsning</div>'}
+MK.view(render);
+</script></body></html>

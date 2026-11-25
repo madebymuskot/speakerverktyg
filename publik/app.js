@@ -223,20 +223,21 @@
   }
 
   function scrollaTillOppnad(id) {
-    const rad = [...document.querySelectorAll(".rad-wrap")].find((w) => w.dataset.id === id);
-    if (!rad) return;
-    const knapp = rad.querySelector(".lagspelare") || rad;
-    const kor = () => {
+    const kor = (smooth) => {
+      const rad = [...document.querySelectorAll("#vy-laglista .rad-wrap")].find((w) => w.dataset.id === id);
+      if (!rad) return;
       const tillbaka = document.querySelector("#vy-laglista:not([hidden]) .tillbaka");
-      const tak = tillbaka ? tillbaka.getBoundingClientRect().bottom : 0;
-      const r = knapp.getBoundingClientRect();
-      const synlig = window.innerHeight - tak;
-      const mal = tak + synlig / 2 - r.height / 2;
-      const delta = r.top - mal;
+      const takH = tillbaka ? tillbaka.getBoundingClientRect().height : 0;
+      const luft = 10;
+      const mal = takH + luft;
+      const prev = rad.previousElementSibling;
+      const ankare = (prev && prev.classList && prev.classList.contains("rad-wrap")) ? prev : rad;
+      const delta = ankare.getBoundingClientRect().top - mal;
       if (Math.abs(delta) < 4) return;
-      window.scrollBy({ top: delta, behavior: "smooth" });
+      window.scrollBy({ top: delta, behavior: smooth ? "smooth" : "auto" });
     };
-    requestAnimationFrame(() => requestAnimationFrame(kor));
+    requestAnimationFrame(() => requestAnimationFrame(() => kor(true)));
+    setTimeout(() => kor(false), 280);
   }
 
   function vaxlaInfo(id) {

@@ -1,0 +1,1446 @@
+/* Publikapp – utkast. Följer hubbens typografi och kortstil, med #00FF80 som accent. */
+:root{
+  --bg:#000;
+  --panel:#151515;
+  --panel-hover:#1c1c1c;
+  --line:#2a2a2a;
+  --text:#fff;
+  --muted:#bbb;
+  --dim:#777;
+  --accent:#00FF80;
+  --accent-bg:#0b2418;
+  --radius:10px;
+  --bar:6px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Arial,sans-serif}
+body{
+  min-height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.wrap{max-width:430px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+header{
+  padding:14px 16px 12px;
+  border-bottom:4px solid #2a2a2a;
+}
+#hClub{font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
+#hT{font-size:26px;font-weight:900;letter-spacing:2px;line-height:1.1;margin-top:2px}
+#hSub{font-size:13px;color:var(--muted);margin-top:4px;font-weight:500}
+
+main{flex:1;padding:14px 14px 24px;display:flex;flex-direction:column;gap:12px}
+.tillbaka{
+  appearance:none;background:none;border:0;color:var(--muted);
+  font:700 14px/1 system-ui,Arial,sans-serif;
+  padding:0 0 4px;margin:0;cursor:pointer;text-align:left;
+  align-self:start;
+}
+.tillbaka:hover,.tillbaka:focus{color:var(--text)}
+
+.matchkort{
+  background:var(--panel);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  border-left:var(--bar) solid #444;
+}
+.matchkort .lagen{font-size:20px;font-weight:800;letter-spacing:.01em;line-height:1.25}
+.matchkort .meta{color:var(--muted);font-size:14px;font-weight:600;margin-top:6px}
+.matchkort .arena{color:var(--dim);font-size:13px;margin-top:3px}
+
+.meny{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.val{
+  display:block;
+  width:100%;
+  text-align:left;
+  background:var(--panel);
+  color:var(--text);
+  border:0;
+  border-left:var(--bar) solid #444;
+  border-radius:var(--radius);
+  padding:16px 18px;
+  font:800 20px/1.2 system-ui,Arial,sans-serif;
+  text-decoration:none;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.val small{display:block;color:var(--muted);font-weight:400;font-size:13px;margin-top:4px}
+.val:hover,.val:focus{background:var(--panel-hover)}
+.val:active{border-left-color:var(--accent)}
+
+.notis{color:var(--dim);font-size:13px;line-height:1.4;margin:0 2px 2px}
+
+.lagblock{margin-top:6px}
+body.publik .lagblock + .lagblock{margin-top:48px}
+body.publik .lagblock + .lagblock .lagnamn{margin-top:0}
+.lagnamn{
+  display:flex;align-items:center;gap:10px;
+  margin:16px 2px 8px;
+  font-size:13px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);
+}
+.lagnamn img{width:36px;height:36px;object-fit:contain;flex:0 0 auto}
+.lagblock:first-child .lagnamn{margin-top:4px}
+.gruppnamn{
+  margin:10px 2px 6px;
+  font-size:12px;font-weight:700;color:var(--dim);
+  letter-spacing:.04em;
+}
+.lista{display:flex;flex-direction:column;gap:6px}
+.rad{
+  display:flex;align-items:center;gap:12px;
+  background:var(--panel);
+  border-radius:8px;
+  padding:10px 12px;
+  border-left:var(--bar) solid #333;
+  min-height:44px;
+}
+.rad .nr{
+  flex:0 0 32px;
+  font-variant-numeric:tabular-nums;
+  font-weight:800;font-size:16px;
+  color:var(--muted);text-align:right;
+}
+.rad .namn{font-weight:700;font-size:16px}
+
+button.spelare{
+  appearance:none;width:100%;border:0;cursor:pointer;
+  color:inherit;font:inherit;text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+button.spelare.vald{
+  border-left-color:var(--accent);
+  background:var(--accent-bg);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent);
+}
+button.spelare.vald .nr,
+button.spelare.vald .namn{color:var(--accent)}
+
+.rosta-bar{
+  position:sticky;bottom:0;
+  margin:16px -14px -24px;
+  padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top, #000 70%, #0000);
+}
+#rostaknapp{
+  appearance:none;width:100%;
+  background:#222;color:var(--dim);
+  border:2px solid #333;
+  border-radius:var(--radius);
+  font:800 18px/1 system-ui,Arial,sans-serif;
+  padding:14px 16px;
+  cursor:pointer;
+}
+#rostaknapp.redo{
+  background:var(--accent-bg);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+#rostaknapp:disabled{cursor:default;opacity:.7}
+
+.tack{
+  background:var(--panel);
+  border-radius:var(--radius);
+  border-left:var(--bar) solid var(--accent);
+  padding:18px 16px;
+}
+.tack h2{margin:0 0 8px;font-size:20px;font-weight:800}
+.tack p{margin:0;color:var(--muted);font-size:15px;line-height:1.4}
+.tack .valdnamn{color:var(--text);font-weight:800}
+
+.vy[hidden]{display:none !important}
+
+footer{color:#555;font-size:12px;padding:8px 16px 18px}
+
+.val[hidden]{display:none !important}
+
+/* Kontroll (platta/desktop) */
+body.kontroll .wrap{max-width:1100px}
+body.kontroll header{padding:16px 22px 14px}
+body.kontroll #hT{font-size:28px}
+body.kontroll main.kontroll-grid{
+  display:grid;
+  grid-template-columns:minmax(280px,1fr) minmax(320px,1.15fr);
+  gap:14px;
+  align-items:start;
+  padding:18px 18px 28px;
+}
+.box{
+  background:var(--panel);
+  border-radius:var(--radius);
+  padding:16px 16px 14px;
+  border-left:var(--bar) solid #444;
+}
+.box h2{
+  margin:0 0 6px;
+  font-size:13px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);
+}
+.box .notis{margin:0 0 12px}
+.falt{
+  display:block;
+  font-size:12px;font-weight:700;color:var(--dim);
+  margin:0 0 6px;
+}
+select,input[type="url"],input[type="text"]{
+  width:100%;
+  background:#111;
+  color:var(--text);
+  border:2px solid #333;
+  border-radius:8px;
+  font:600 15px/1.3 system-ui,Arial,sans-serif;
+  padding:10px 12px;
+}
+select:focus,input:focus{
+  outline:0;
+  border-color:var(--accent);
+}
+.styr-rad{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;
+  padding:10px 0;
+  border-top:1px solid #2a2a2a;
+}
+.styr-rad:first-of-type{border-top:0;padding-top:0}
+.styr-rad span{font-weight:700;font-size:16px}
+.brytare{display:flex;gap:6px;flex:0 0 auto}
+.brytare button{
+  appearance:none;
+  min-width:52px;
+  background:#222;color:var(--dim);
+  border:2px solid #333;
+  border-radius:8px;
+  font:800 14px/1 system-ui,Arial,sans-serif;
+  padding:8px 12px;
+  cursor:pointer;
+}
+.brytare button.on{
+  background:var(--accent-bg);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.lankrad{display:flex;gap:8px;align-items:stretch}
+.lankrad input{flex:1;min-width:0}
+#spara-lank,#vaxla-rost,#nollstall{
+  appearance:none;
+  background:#222;color:var(--text);
+  border:2px solid #444;
+  border-radius:8px;
+  font:800 14px/1 system-ui,Arial,sans-serif;
+  padding:10px 14px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+#spara-lank:hover,#vaxla-rost:hover{border-color:var(--accent);color:var(--accent)}
+#vaxla-rost.varning{border-color:#555}
+#nollstall.tyst{background:transparent;border-color:#333;color:var(--dim);font-weight:700}
+#nollstall.tyst:hover{color:var(--text);border-color:#666}
+.rost-box{min-height:100%}
+.rost-huvud{
+  display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
+  margin-bottom:8px;
+}
+.rost-knappar{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.statusrad{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.status{
+  display:inline-block;
+  font:800 12px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 8px;border-radius:6px;
+  border:1px solid #444;color:var(--muted);
+}
+.status.pa{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.status.av{border-color:#444;color:var(--dim)}
+#rost-total{font-weight:700;color:var(--text)}
+#rost-exempel{color:var(--dim)}
+.tom{color:var(--dim);margin:12px 0 0}
+.rost-rad{
+  display:grid;
+  grid-template-columns:24px 32px minmax(0,1fr) 36px;
+  grid-template-rows:auto 5px;
+  column-gap:8px;row-gap:4px;
+  align-items:center;
+  padding:7px 4px 8px;
+  border-top:1px solid #2a2a2a;
+}
+.rost-rad .plats{color:var(--dim);font-weight:700;font-size:13px}
+.rost-rad .nr{font-variant-numeric:tabular-nums;font-weight:800;color:var(--muted);text-align:right}
+.rost-rad .namn{font-weight:700;font-size:15px;min-width:0}
+.rost-rad .namn small{display:block;color:var(--dim);font-weight:500;font-size:12px;margin-top:1px}
+.rost-rad .antal{font-weight:800;font-variant-numeric:tabular-nums;text-align:right;color:var(--text)}
+.rost-rad.topp .antal,.rost-rad.topp .namn{color:var(--accent)}
+.rost-rad .stapel{
+  grid-column:1/-1;
+  height:6px;background:#222;border-radius:3px;overflow:hidden;
+}
+.rost-rad .stapel i{
+  display:block;height:100%;background:var(--accent);
+  border-radius:3px;
+}
+.tack.stangd{border-left-color:#444}
+.tack.stangd h2{color:var(--text)}
+
+@media(max-width:860px){
+  body.kontroll main.kontroll-grid{grid-template-columns:1fr}
+  .rost-huvud{flex-direction:column}
+}
+
+/* Publik: PHC-logga överst, sedan Dagens match */
+body.publik header{
+  display:flex;flex-direction:column;align-items:center;
+  padding:16px 16px 10px;
+  text-align:center;
+}
+.phc-logo{
+  display:block;
+  height:48px;width:auto;
+  margin:0 auto;
+}
+body.publik.inner .phc-logo{height:48px}
+body.publik #hSub{
+  margin-top:8px;
+  font-size:13px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);
+}
+body.publik #hSub:empty,body.publik #hSub[hidden]{display:none}
+
+.dagens{
+  background:var(--panel);
+  border-radius:12px;
+  padding:18px 14px 16px;
+  text-align:center;
+}
+.dagens .etikett{
+  margin:0 0 14px;
+  font-size:12px;font-weight:800;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--muted);
+}
+.dagens .lagen-rutor{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:6px;
+}
+.dagens .lag{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.dagens .lag img{
+  width:92px;height:92px;
+  object-fit:contain;
+}
+.dagens .lag .namn{
+  font-weight:800;font-size:14px;line-height:1.2;
+  max-width:100%;
+}
+.dagens .mot{
+  flex:0 0 auto;
+  color:var(--dim);font-weight:800;font-size:20px;
+  padding-bottom:22px;
+}
+.dagens .när{margin-top:14px}
+.dagens .dag{
+  font-weight:700;font-size:15px;color:var(--muted);
+}
+.dagens .klockslag{
+  margin-top:2px;
+  font-weight:900;font-size:32px;letter-spacing:.04em;
+  font-variant-numeric:tabular-nums;
+  line-height:1.1;
+}
+.dagens .arena{
+  margin-top:4px;
+  color:var(--dim);font-size:13px;font-weight:600;
+}
+
+/* Tydligare, större menyknappar */
+.meny{display:flex;flex-direction:column;gap:12px;margin-top:2px}
+.val{
+  display:block;
+  width:100%;
+  text-align:left;
+  background:var(--panel);
+  color:var(--text);
+  border:0;
+  border-left:var(--bar) solid #444;
+  border-radius:12px;
+  padding:20px 20px;
+  min-height:80px;
+  font:800 22px/1.2 system-ui,Arial,sans-serif;
+  text-decoration:none;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.val small{display:block;color:var(--muted);font-weight:400;font-size:14px;margin-top:5px}
+.val:hover,.val:focus{background:var(--panel-hover)}
+.val:active{border-left-color:var(--accent)}
+
+/* Kontroll: matchval med loggor */
+.matchlista{display:flex;flex-direction:column;gap:8px}
+.matchrad{
+  appearance:none;width:100%;
+  display:flex;align-items:center;gap:12px;
+  text-align:left;
+  background:#111;color:var(--text);
+  border:2px solid #333;
+  border-radius:8px;
+  padding:10px 12px;
+  font:inherit;cursor:pointer;
+}
+.matchrad .loggor{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.matchrad .loggor img{width:36px;height:36px;object-fit:contain}
+.matchrad .text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.matchrad .namn{font-weight:800;font-size:15px;line-height:1.25}
+.matchrad small{color:var(--muted);font-weight:500;font-size:12px}
+.matchrad.vald{
+  border-color:var(--accent);
+  background:var(--accent-bg);
+}
+.matchrad.vald .namn{color:var(--accent)}
+
+/* Dagens matchvärd */
+.matchvard{
+  background:var(--panel);
+  border-radius:12px;
+  padding:12px 14px 12px;
+  text-align:center;
+}
+.matchvard[hidden]{display:none !important}
+.matchvard .etikett{
+  margin:0 0 8px;
+  font-size:11px;font-weight:800;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted);
+}
+.mv-innehall{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:inherit;text-decoration:none;
+}
+.mv-innehall img{
+  display:block;
+  height:40px;width:auto;max-width:220px;
+  object-fit:contain;
+}
+.mv-innehall .namn{font-weight:800;font-size:16px}
+
+/* Laglista: utfällbar spelarinfo */
+.rad-wrap{display:flex;flex-direction:column}
+button.lagspelare{
+  appearance:none;width:100%;border:0;cursor:pointer;
+  color:inherit;font:inherit;text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+button.lagspelare.vald{
+  border-left-color:var(--accent);
+  background:var(--accent-bg);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent);
+}
+button.lagspelare.vald .nr,
+button.lagspelare.vald .namn{color:var(--accent)}
+.info-panel{
+  margin:0 0 8px;
+  padding:10px 12px 12px;
+  background:#111;
+  border-radius:0 0 8px 8px;
+  border:1px solid color-mix(in srgb,var(--accent) 35%,#333);
+  border-top:0;
+}
+.rad-wrap.oppen .lagspelare{border-radius:8px 8px 0 0;margin-bottom:0}
+.info-rad{
+  display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+  padding:5px 0;
+  border-bottom:1px solid #2a2a2a;
+  font-size:14px;
+}
+.info-rad span{color:var(--dim);font-weight:600}
+.info-rad b{font-weight:800;text-align:right}
+.info-kort{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin-top:10px;
+}
+.info-kort-ruta{
+  background:#1a1a1a;
+  border-radius:8px;
+  padding:8px 10px 9px;
+  min-width:0;
+}
+.info-kort-ruta .k{
+  font-size:10px;font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--dim);
+}
+.info-kort-ruta .v{
+  font-weight:900;font-size:20px;line-height:1.15;margin-top:3px;
+  color:var(--accent);
+  font-variant-numeric:tabular-nums;
+}
+.info-kort-ruta .d{font-size:11px;color:var(--muted);margin-top:2px}
+.info-saknas{color:var(--dim);font-size:13px;margin:10px 0 0}
+.info-kalla{color:#555;font-size:11px;margin:10px 0 0}
+
+#mv-namn,#mv-logo,#mv-lank{margin-bottom:8px}
+#spara-matchvard{
+  appearance:none;
+  background:#222;color:var(--text);
+  border:2px solid #444;
+  border-radius:8px;
+  font:800 14px/1 system-ui,Arial,sans-serif;
+  padding:10px 14px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+#spara-matchvard:hover{border-color:var(--accent);color:var(--accent)}
+
+.kol{display:flex;flex-direction:column;gap:14px}
+.lage-val{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.lage-val button{
+  appearance:none;
+  flex:1 1 140px;
+  background:#222;color:var(--dim);
+  border:2px solid #333;
+  border-radius:8px;
+  font:800 13px/1.25 system-ui,Arial,sans-serif;
+  padding:10px 12px;
+  cursor:pointer;
+  text-align:center;
+  white-space:nowrap;
+}
+.lage-val button.on{
+  background:var(--accent-bg);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.matchrad .marke{
+  flex:0 0 auto;
+  font:800 10px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);
+  border:1px solid var(--accent);
+  border-radius:6px;
+  padding:5px 6px;
+}
+.qr-rad{display:flex;gap:16px;align-items:center}
+.qr-kod{
+  flex:0 0 auto;
+  background:#fff;
+  border-radius:8px;
+  line-height:0;
+}
+.qr-kod svg{display:block;border-radius:8px}
+.qr-url{
+  font:700 14px/1.45 ui-monospace,Menlo,Consolas,monospace;
+  word-break:break-all;
+  color:var(--text);
+}
+
+/* Publik: röd PHC-gradient och sportiga startknappar. Kontrollsidan påverkas inte. */
+html:has(body.publik){background:#140306}
+body.publik{
+  --panel:rgba(6,2,3,.58);
+  --panel-hover:rgba(22,8,10,.74);
+  background-color:#140306;
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -8%, #7a1a24 0%, rgba(88,16,24,.5) 34%, transparent 64%),
+    linear-gradient(180deg, #4a1018 0%, #2a0a10 32%, #140306 70%, #0a0204 100%);
+  background-attachment:fixed;
+}
+body.publik header{border-bottom:0}
+body.publik footer{color:rgba(255,255,255,.48)}
+body.publik .dagens,
+body.publik .rad,
+body.publik .tack{
+  background:var(--panel);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 8px 28px rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.08);
+}
+body.publik .matchvard{
+  background:rgba(0,0,0,.84);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 8px 28px rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.06);
+}
+body.publik .info-panel{
+  background:rgba(6,2,3,.72);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+body.publik .info-kort-ruta{background:rgba(0,0,0,.35)}
+body.publik .mv-platta{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  border-radius:0;
+  padding:0;
+  box-shadow:none;
+}
+body.publik .mv-innehall img{
+  filter:none;
+  background:transparent;
+  height:52px;
+  width:auto;
+  max-width:260px;
+  padding:0;
+  object-fit:contain;
+}
+body.publik.platta-vit .matchvard{
+  background:var(--panel);
+  border:1px solid rgba(255,255,255,.08);
+}
+body.publik.platta-vit .mv-platta{
+  background:#fff;
+  border-radius:12px;
+  padding:8px 16px;
+  box-shadow:0 4px 16px rgba(0,0,0,.28);
+}
+body.publik.platta-vit .mv-innehall img{height:44px;max-width:240px}
+body.publik .rosta-bar{
+  background:linear-gradient(to top, #140306 72%, transparent);
+}
+body.publik #rostaknapp{
+  background:rgba(8,2,4,.7);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+body.publik #rostaknapp.redo{background:var(--accent-bg)}
+
+body.publik .meny{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:4px;
+}
+body.publik .val{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  gap:8px;
+  min-height:118px;
+  padding:16px 12px 14px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:22px;
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.42));
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.18);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  font:800 15px/1.15 system-ui,Arial,sans-serif;
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+}
+body.publik .val small{font-size:12px;margin-top:3px;color:rgba(255,255,255,.72)}
+body.publik .val .ikon{
+  display:block;
+  width:40px;height:40px;
+  color:#fff;
+  filter:drop-shadow(0 0 8px rgba(255,255,255,.35));
+}
+body.publik .val .ikon svg{display:block;width:100%;height:100%}
+body.publik .val-text{display:block}
+body.publik #val-spel{
+  grid-column:1 / -1;
+}
+body.publik #val-spel .ikon{
+  width:188px;
+  height:52px;
+}
+body.publik #val-spel .ikon img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+}
+body.publik .val.val-bred{
+  grid-column:1 / -1;
+  flex-direction:row;
+  justify-content:flex-start;
+  text-align:left;
+  min-height:84px;
+  padding:16px 20px;
+  gap:16px;
+  font-size:20px;
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 0 28px rgba(255,255,255,.10);
+}
+body.publik .val:hover,
+body.publik .val:focus{
+  background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.34));
+}
+/* Röd outline bara vid nedtryckning (plus kort tryckfeedback via .tryckt) */
+body.publik .val:active,
+body.publik .val.tryckt{
+  transform:scale(.96) translateY(2px);
+  box-shadow:0 3px 10px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08), 0 0 18px rgba(232,56,68,.28);
+  border-color:#ff5a64;
+  border-left-color:#ff5a64;
+}
+
+/* Tillbaka: samma sportiga bricka som startknapparna, klistrad överst */
+body.publik .tillbaka{
+  position:sticky;
+  top:0;
+  z-index:20;
+  margin:0 0 12px;
+  min-height:76px;
+  background:linear-gradient(180deg, rgba(48,12,16,.96), rgba(10,2,4,.96));
+}
+
+/* Laguppställning/röstning: vit outline i stället för grön (grönt bara på kontroll) */
+body.publik button.lagspelare.vald,
+body.publik button.spelare.vald{
+  border-left-color:#fff;
+  background:rgba(255,255,255,.08);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.75);
+}
+body.publik button.lagspelare.vald .nr,
+body.publik button.lagspelare.vald .namn,
+body.publik button.spelare.vald .nr,
+body.publik button.spelare.vald .namn{color:#fff}
+body.publik .info-panel{
+  border-color:rgba(255,255,255,.7);
+}
+body.publik #rostaknapp.redo{
+  background:#00FF80;
+  border-color:#00FF80;
+  color:#140306;
+}
+body.publik .tack{border-left:0}
+
+body.publik button.lagspelare.vald .nr,
+body.publik button.lagspelare.vald .namn{color:#fff}
+body.publik .info-kort-ruta .v{color:#fff}
+
+body.publik .dialog{
+  position:fixed;inset:0;z-index:40;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px 18px;
+  background:rgba(0,0,0,.72);
+}
+body.publik .dialog[hidden]{display:none !important}
+body.publik .dialog-ruta{
+  width:100%;max-width:320px;
+  background:rgba(8,2,4,.92);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:22px;
+  padding:28px 22px 22px;
+  text-align:center;
+  box-shadow:0 16px 40px rgba(0,0,0,.45);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+body.publik #alder-fraga{
+  margin:0 0 22px;
+  font:800 22px/1.25 system-ui,Arial,sans-serif;
+  color:#fff;
+}
+body.publik .dialog-knappar{display:flex;gap:12px}
+body.publik .dialog-knappar button{
+  appearance:none;
+  flex:1;
+  min-height:52px;
+  border-radius:16px;
+  font:800 18px/1 system-ui,Arial,sans-serif;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .12s ease, background .12s ease;
+}
+body.publik .dialog-knappar button:active{transform:scale(.96)}
+body.publik #alder-ja{
+  background:#fff;color:#140306;border:2px solid #fff;
+}
+body.publik #alder-nej{
+  background:transparent;color:#fff;border:2px solid rgba(255,255,255,.55);
+}
+
+.dagens .mot.stallning{
+  padding-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+  color:#fff;
+}
+.dagens .mot.stallning .mal{
+  font-weight:900;font-size:40px;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.dagens .mot.stallning .streck{font-size:22px;color:var(--muted);padding:0 2px}
+.dagens .nedslapp-etikett{
+  margin-top:8px;
+  font-size:11px;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);
+}
+.dagens .nedrakning-dagar{
+  margin-top:2px;
+  font-weight:800;font-size:18px;
+}
+.dagens .klockslag.nedrakning{font-size:30px;margin-top:0}
+.dagens .period{
+  font-weight:800;font-size:18px;letter-spacing:.03em;
+  font-variant-numeric:tabular-nums;
+}
+.dagens .mock-marke{
+  margin-top:8px;
+  font-size:11px;font-weight:700;letter-spacing:.04em;
+  color:var(--dim);
+}
+
+
+/* Rösta: horisontell karusell med stora spelar kort */
+#vy-rosta .rosta-bar{
+  position:static;
+  margin:16px 0 0;
+  padding:0;
+  background:none;
+}
+body.publik #vy-rosta .rosta-bar{
+  background:none;
+  margin:18px 0 8px;
+  padding:0;
+}
+body.publik .rosta-valj-lag{
+  margin:0 0 8px;
+  text-align:center;
+  font-weight:700;
+  color:rgba(255,255,255,.82);
+}
+body.publik .rosta-filter{
+  display:flex;
+  gap:10px;
+  margin:0 0 16px;
+}
+body.publik .rosta-filter button{
+  appearance:none;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:92px;
+  padding:12px 8px 10px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:20px;
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.42));
+  color:rgba(255,255,255,.88);
+  font:800 14px/1.2 system-ui,Arial,sans-serif;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+body.publik .rosta-filter button.on{
+  border-color:rgba(255,255,255,.55);
+  color:#fff;
+  background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.34));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);
+}
+body.publik .rosta-filter button:active{
+  transform:scale(.97);
+  border-color:#ff5a64;
+}
+body.publik .rosta-laglogo{
+  width:44px;height:44px;
+  object-fit:contain;
+  display:block;
+}
+body.publik .rosta-filter .namn{display:block}
+body.publik .info-portratt{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin:0 0 12px;
+}
+body.publik .info-portratt img{
+  display:block;
+  width:auto;
+  max-width:180px;
+  height:160px;
+  object-fit:contain;
+  object-position:center bottom;
+}
+body.publik .info-portratt-etikett{
+  margin:6px 0 0;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.02em;
+  color:rgba(255,255,255,.62);
+  text-align:center;
+}
+body.publik .rostakarusell{
+  display:flex;
+  gap:14px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x;
+  padding:8px 15%;
+  margin:0 -14px;
+  scrollbar-width:none;
+}
+body.publik .rostakarusell::-webkit-scrollbar{display:none}
+body.publik .rostakort{
+  flex:0 0 70%;
+  max-width:280px;
+  scroll-snap-align:center;
+  scroll-snap-stop:always;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:300px;
+  padding:28px 18px 24px;
+  border-radius:22px;
+  border:1.5px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.42));
+  box-shadow:0 10px 24px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.16);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  text-align:center;
+  color:#fff;
+}
+body.publik .rostakort.vald{
+  border-color:#ff5a64;
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 0 24px rgba(232,56,68,.28);
+}
+body.publik .rostakort{
+  position:relative;
+}
+body.publik .rostakort .kort-laglogo{
+  width:72px;height:72px;
+  object-fit:contain;
+  margin-bottom:4px;
+}
+body.publik .rostakort.har-portratt .kort-portratt{
+  width:auto;
+  max-width:200px;
+  height:168px;
+  object-fit:contain;
+  object-position:center bottom;
+  margin:0 0 4px;
+}
+body.publik .rostakort.har-portratt .kort-laglogo{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:36px;
+  height:36px;
+  margin:0;
+}
+body.publik .rostakort .nr{
+  font-weight:900;font-size:64px;line-height:1;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.03em;
+}
+body.publik .rostakort .namn{
+  font-weight:800;font-size:22px;line-height:1.2;
+}
+body.publik .rostakort .pos{
+  font-weight:700;font-size:13px;letter-spacing:.08em;
+  text-transform:uppercase;color:rgba(255,255,255,.7);
+}
+body.publik #rostaknapp{
+  font-size:20px;
+  min-height:56px;
+}
+
+
+body.publik .rosta-filter button{
+  position:relative;
+}
+body.publik .rostad-check{
+  position:absolute;
+  top:8px;
+  right:10px;
+  width:22px;height:22px;
+  border-radius:50%;
+  background:#fff;
+  color:#140306;
+  font:800 13px/22px system-ui,Arial,sans-serif;
+  text-align:center;
+}
+body.publik .tacklista{
+  list-style:none;
+  margin:16px 0 14px;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+body.publik .tack-rad{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  text-align:left;
+  padding:10px 12px;
+  border-radius:16px;
+  background:rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.12);
+}
+body.publik .tack-rad img{
+  width:56px;height:56px;
+  object-fit:contain;
+  object-position:center bottom;
+  flex:0 0 auto;
+}
+body.publik .tack-rad .text{min-width:0}
+body.publik .tack-rad .namn{
+  display:block;
+  font-weight:800;font-size:16px;line-height:1.2;
+  color:#fff;
+}
+body.publik .tack-rad small{
+  display:block;
+  margin-top:2px;
+  color:rgba(255,255,255,.7);
+  font-weight:700;
+}
+
+
+/* Live-status: powerplay och paus på Dagens match */
+.dagens .lage-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin:12px auto 0;
+  padding:8px 14px 8px 10px;
+  border-radius:999px;
+  font:800 15px/1.1 system-ui,Arial,sans-serif;
+  color:#fff;
+  letter-spacing:.02em;
+  border:1px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.16);
+  box-shadow:0 4px 16px rgba(0,0,0,.28);
+}
+.dagens .lage-badge img{
+  width:28px;height:28px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+.dagens .lage-badge .badge-tid{
+  font-size:20px;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:0;
+}
+.dagens .lage-badge.paus{
+  padding-left:16px;
+  letter-spacing:.12em;
+}
+.dagens .period.nasta{font-size:14px;letter-spacing:.04em;color:rgba(255,255,255,.8)}
+
+/* Livestat */
+#livestat{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+body.publik .livestat-marke{margin:0 0 2px;text-align:center}
+body.publik .stat-kort{
+  padding:14px 14px 16px;
+  border-radius:20px;
+  background:rgba(0,0,0,.34);
+  border:1px solid rgba(255,255,255,.12);
+}
+body.publik .stat-kort .etikett{
+  margin:0 0 10px;
+  font:800 11px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.7);
+  text-align:center;
+}
+body.publik .livestat-stallning{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  font:900 36px/1 system-ui,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+  color:#fff;
+}
+body.publik .livestat-stallning img{width:40px;height:40px;object-fit:contain}
+body.publik .livestat-period{
+  margin:8px 0 12px;text-align:center;
+  font:700 14px/1.2 system-ui,Arial,sans-serif;
+  color:rgba(255,255,255,.8);
+}
+body.publik .mallista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+body.publik .mal-rad{
+  display:grid;
+  grid-template-columns:64px 28px minmax(0,1fr);
+  gap:8px;
+  align-items:center;
+  text-align:left;
+  padding:8px 8px;
+  border-radius:14px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+}
+body.publik .mal-rad .mtid{
+  font:800 12px/1.1 system-ui,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+  color:rgba(255,255,255,.75);
+}
+body.publik .mal-rad .mlag{width:28px;height:28px;object-fit:contain}
+body.publik .mal-rad .mtext b{display:block;font:800 14px/1.2 system-ui,Arial,sans-serif;color:#fff}
+body.publik .mal-rad .mtext small{display:block;margin-top:2px;font:700 11px/1.25 system-ui,Arial,sans-serif;color:rgba(255,255,255,.68)}
+body.publik .delad{
+  display:grid;
+  grid-template-columns:minmax(72px,auto) 1fr minmax(72px,auto);
+  gap:8px;
+  align-items:center;
+}
+body.publik .delad .sida{
+  display:flex;align-items:center;gap:6px;
+  font:800 18px/1 system-ui,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+  color:#fff;
+}
+body.publik .delad .sida.ho{justify-content:flex-end}
+body.publik .delad .sida img{width:28px;height:28px;object-fit:contain}
+body.publik .delad-falt{
+  height:12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.16);
+  overflow:hidden;
+}
+body.publik .delad-falt i{
+  display:block;height:100%;
+  background:#fff;
+  border-radius:999px 0 0 999px;
+}
+body.publik .delad-antal{
+  display:flex;justify-content:space-between;
+  margin-top:8px;
+  font:700 12px/1 system-ui,Arial,sans-serif;
+  color:rgba(255,255,255,.7);
+}
+body.publik .zon-legend{
+  display:flex;justify-content:center;gap:10px;flex-wrap:wrap;
+  margin:0 0 10px;
+  font:700 11px/1 system-ui,Arial,sans-serif;
+  color:rgba(255,255,255,.75);
+}
+body.publik .zon-legend .p::before{
+  content:"";
+  display:inline-block;width:8px;height:8px;border-radius:2px;
+  margin-right:5px;vertical-align:middle;
+}
+body.publik .zon-legend .anfall::before,body.publik .z.anfall{background:#ff8a96}
+body.publik .zon-legend .neutral::before,body.publik .z.neutral{background:rgba(255,255,255,.55)}
+body.publik .zon-legend .forsvar::before,body.publik .z.forsvar{background:rgba(255,255,255,.22)}
+body.publik .zon-lag{
+  display:flex;align-items:center;gap:8px;
+  margin:8px 0 6px;
+  font:800 14px/1 system-ui,Arial,sans-serif;color:#fff;
+}
+body.publik .zon-lag img{width:24px;height:24px;object-fit:contain}
+body.publik .zon-falt{
+  display:flex;height:28px;border-radius:10px;overflow:hidden;
+  background:rgba(0,0,0,.25);
+}
+body.publik .zon-falt .z{
+  display:flex;align-items:center;justify-content:center;
+  min-width:0;
+  font:800 11px/1 system-ui,Arial,sans-serif;
+  color:#140306;
+}
+body.publik .zon-falt .z.forsvar{color:#fff}
+body.publik .isen-lag + .isen-lag{margin-top:16px}
+body.publik .isen-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+body.publik .isen-rad{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 8px;
+  border-radius:14px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+}
+body.publik .isen-rad img{
+  width:40px;height:40px;
+  object-fit:contain;
+  object-position:center bottom;
+  flex:0 0 auto;
+}
+body.publik .isen-rad .text b{font:800 14px/1.2 system-ui,Arial,sans-serif;color:#fff}
+
+/* Partners / 1986-Klubben på startsidan */
+body.publik .partners{
+  margin:28px 0 8px;
+  padding-top:8px;
+}
+body.publik .partners h2{
+  margin:0 0 4px;
+  font:800 11px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.7);
+  text-align:center;
+}
+body.publik .partners .partners-under{
+  margin:0 0 14px;
+  text-align:center;
+  font:700 13px/1.3 system-ui,Arial,sans-serif;
+  color:rgba(255,255,255,.62);
+}
+body.publik .partner-rutnat{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+body.publik .partner-ruta{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:86px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 4px 14px rgba(0,0,0,.22);
+}
+body.publik .partner-ruta img{
+  display:block;
+  width:100%;
+  height:64px;
+  object-fit:contain;
+  object-position:center;
+}
+body.publik a.partner-ruta{color:inherit;text-decoration:none}
+body.publik .partner-namnlista{
+  margin:16px 0 0;
+  padding:0;
+  list-style:none;
+  columns:2;
+  column-gap:14px;
+  font:600 11px/1.45 system-ui,Arial,sans-serif;
+  color:rgba(255,255,255,.72);
+}
+body.publik .partner-namnlista li{break-inside:avoid;margin:0 0 4px}
+body.publik .partner-namnlista a{color:rgba(255,255,255,.86);text-decoration:none}
+
+/* Luft före partners + sidfot */
+#partners{margin-top:88px !important;}
+.sidfot{text-align:center;font-size:12px;color:rgba(255,255,255,.55);padding:28px 16px 36px;}
+
+
+/* Shootout – straffläggning i periodpaus (rutan syns tills vidare alltid) */
+body.publik .spel-hud{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
+  margin:0 0 10px;
+  text-align:center;
+  font:700 13px/1.2 system-ui,Arial,sans-serif;
+  color:rgba(255,255,255,.72);
+  letter-spacing:.02em;
+}
+body.publik .spel-hud b{
+  display:inline;
+  color:#fff;
+  font:800 16px/1 system-ui,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+body.publik .spel-plan{
+  position:relative;
+  margin:0 auto;
+  width:100%;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 10px 28px rgba(0,0,0,.4);
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+body.publik .spel-plan[hidden]{display:none !important}
+body.publik #spel-canvas{
+  display:block;
+  width:100%;
+  touch-action:none;
+  cursor:grab;
+}
+body.publik .spel-hint{
+  position:absolute;
+  left:0;right:0;bottom:18px;
+  margin:0;
+  text-align:center;
+  font:800 14px/1.2 system-ui,Arial,sans-serif;
+  color:#140306;
+  text-shadow:0 1px 0 rgba(255,255,255,.7);
+  pointer-events:none;
+}
+body.publik .spel-hint[hidden]{display:none !important}
+body.publik .spel-feedback{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0;
+  font:900 48px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.06em;
+  color:#fff;
+  text-shadow:0 4px 24px rgba(0,0,0,.65);
+  background:rgba(10,2,4,.28);
+  pointer-events:none;
+}
+body.publik .spel-feedback[hidden]{display:none !important}
+body.publik .spel-feedback.mal{color:#fff}
+body.publik .spel-feedback.raddning{color:#fff;letter-spacing:.04em;font-size:36px}
+body.publik .spel-feedback.ute{color:#ffd0d4;letter-spacing:.04em;font-size:36px}
+
+body.publik .spel-resultat{
+  margin-top:4px;
+  padding:22px 18px 18px;
+  border-radius:22px;
+  background:rgba(6,2,3,.62);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 8px 28px rgba(0,0,0,.28);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  text-align:center;
+}
+body.publik .spel-resultat[hidden]{display:none !important}
+body.publik .spel-resultat h2{
+  margin:0;
+  font:800 12px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.7);
+}
+body.publik .spel-score{
+  margin:8px 0 2px;
+  font:900 64px/1 system-ui,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.02em;
+  color:#fff;
+}
+body.publik .spel-basta-rad{
+  margin:0 0 18px;
+  font:700 15px/1.3 system-ui,Arial,sans-serif;
+  color:rgba(255,255,255,.7);
+}
+body.publik .spel-namnform{
+  margin:0 0 16px;
+  text-align:left;
+}
+body.publik .spel-namnform label{
+  display:block;
+  margin:0 0 8px;
+  font:800 11px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.7);
+}
+body.publik .spel-namnrad{display:flex;gap:8px;align-items:stretch}
+body.publik #spel-namn{
+  flex:1;
+  min-width:0;
+  appearance:none;
+  background:rgba(0,0,0,.4);
+  color:#fff;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:14px;
+  padding:12px 14px;
+  font:700 16px/1.2 system-ui,Arial,sans-serif;
+}
+body.publik #spel-namn:focus{
+  outline:0;
+  border-color:#ff5a64;
+  box-shadow:0 0 0 3px rgba(232,56,68,.25);
+}
+body.publik #spel-skicka{
+  appearance:none;
+  flex:0 0 auto;
+  background:#fff;
+  color:#140306;
+  border:2px solid #fff;
+  border-radius:14px;
+  padding:10px 16px;
+  font:800 16px/1 system-ui,Arial,sans-serif;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+body.publik #spel-skicka:disabled{opacity:.45;cursor:default}
+body.publik #spel-skicka:active{transform:scale(.96)}
+body.publik .spel-namnfel{
+  margin:8px 0 0;
+  font:700 13px/1.3 system-ui,Arial,sans-serif;
+  color:#ffb4b8;
+}
+body.publik .spel-namnfel[hidden],
+body.publik .spel-skickat[hidden]{display:none !important}
+body.publik .spel-skickat{
+  margin:0 0 16px;
+  font:700 15px/1.3 system-ui,Arial,sans-serif;
+  color:#fff;
+}
+body.publik .spel-resultat h3{
+  margin:4px 0 10px;
+  font:800 12px/1 system-ui,Arial,sans-serif;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.7);
+}
+body.publik .spel-topp{
+  list-style:none;
+  margin:0 0 16px;
+  padding:0;
+  text-align:left;
+}
+body.publik .spel-topp li{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px;
+  border-top:1px solid rgba(255,255,255,.08);
+  font:700 15px/1.2 system-ui,Arial,sans-serif;
+  counter-increment:spel-topp;
+}
+body.publik .spel-topp{counter-reset:spel-topp}
+body.publik .spel-topp li::before{
+  content:counter(spel-topp);
+  flex:0 0 22px;
+  color:rgba(255,255,255,.5);
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+body.publik .spel-topp li.jag{
+  background:rgba(255,255,255,.08);
+  border-radius:10px;
+  border-top-color:transparent;
+}
+body.publik .spel-topp .namn{flex:1;min-width:0}
+body.publik .spel-topp .poang{
+  font-variant-numeric:tabular-nums;
+  font-weight:800;
+  color:#fff;
+}
+body.publik .spel-topp li.tom{
+  justify-content:center;
+  color:rgba(255,255,255,.55);
+  font-weight:600;
+  border-top:0;
+}
+body.publik .spel-topp li.tom::before{content:none}
+body.publik .spel-resultat #spel-igen{
+  margin-top:4px;
+}
+
+/* Kontroll: Shootout-topplista */
+.spel-kontroll-topp{margin:0}
+.spel-kontroll-topp .tom{margin:8px 0 0}
+.spel-kontroll-rad{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr) 48px;
+  gap:8px;
+  align-items:center;
+  padding:7px 4px 8px;
+  border-top:1px solid #2a2a2a;
+  font-weight:700;
+}
+.spel-kontroll-rad .plats{color:var(--dim);font-size:13px}
+.spel-kontroll-rad .namn{min-width:0}
+.spel-kontroll-rad .antal{
+  font-variant-numeric:tabular-nums;
+  text-align:right;
+  font-weight:800;
+}
+.spel-kontroll-rad.topp .namn,
+.spel-kontroll-rad.topp .antal{color:var(--accent)}

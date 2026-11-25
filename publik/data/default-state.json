@@ -1,0 +1,20 @@
+{
+  "matchId": "90255224",
+  "meny": {
+    "laglista": true,
+    "halvapott": true,
+    "rosta": true,
+    "livestat": true
+  },
+  "halvapottUrl": "https://ff.nu/BDkh5",
+  "rostningOppen": true,
+  "roster": {},
+  "rosterArExempel": false,
+  "matchvard": {
+    "pa": true,
+    "namn": "Laitis",
+    "logo": "logos/laitis.png",
+    "lank": "https://laitis.se/"
+  },
+  "matchAuto": true
+}

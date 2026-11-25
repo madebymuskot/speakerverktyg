@@ -1,0 +1,589 @@
+{
+  "kalla": "https://www.hockeyettan.se/pitea-hockey/sponsorer/",
+  "kalla_inbaddad": "https://customer.wecall.se/UEl0ZcOF/companies.html",
+  "beskrivning": "1986-Klubben säsongen 2026/27. Lista och loggor från klubbens sida på piteahockey.se (pekas om till hockeyettan.se). Inga nivåer (huvudsponsor/guld) fanns i källan.",
+  "sponsorer": [
+    {
+      "namn": "AB KRISTOFS FLORA",
+      "niva": null,
+      "logo": null,
+      "lank": "https://kristofsflora.interflorabutiker.se/#"
+    },
+    {
+      "namn": "ADVOKATBYRÅN KAIDING",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "ADVOKATFIRMAN LATIUM AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "AF TECH NORD AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "AGIO EKONOMI AB",
+      "niva": null,
+      "logo": "agio_ekonomi.jpg",
+      "lank": null
+    },
+    {
+      "namn": "ALOVA HR",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "ARNE JONSSONS ÅKERIAKTIEBOLAG AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "AVONOVA HÄLSA I PITEÅ AB",
+      "niva": null,
+      "logo": "avonova.jpg",
+      "lank": null
+    },
+    {
+      "namn": "BACKCITY",
+      "niva": null,
+      "logo": "backcity.jpg",
+      "lank": null
+    },
+    {
+      "namn": "BARBERSHOP GALLERIAN PITEÅ",
+      "niva": null,
+      "logo": "barbershop.jpg",
+      "lank": null
+    },
+    {
+      "namn": "BERGDAHLS KONSULT I PITEÅ AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "BILKOMPANIET",
+      "niva": null,
+      "logo": "bilkompaniet.jpg",
+      "lank": "https://www.bilkompaniet.com/"
+    },
+    {
+      "namn": "BONDSÅGAT AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "BRA GOLV I PITEÅ AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "BRAVIDA",
+      "niva": null,
+      "logo": "bravida.jpg",
+      "lank": null
+    },
+    {
+      "namn": "BYGMA",
+      "niva": null,
+      "logo": "bygma.jpg",
+      "lank": null
+    },
+    {
+      "namn": "CEMEKON AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "CENTRUM KROG",
+      "niva": null,
+      "logo": "centrum_krog.jpg",
+      "lank": null
+    },
+    {
+      "namn": "CENTRUMGYMNASTEN",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "COLORAMA PITEÅ",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "CURLY TRADING AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "CUT AND SLICE",
+      "niva": null,
+      "logo": "cut_slice.jpg",
+      "lank": null
+    },
+    {
+      "namn": "ELON BUSINESS PITEÅ IT & SOLUTIONS",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "ERA REVISORER I NORR AB",
+      "niva": null,
+      "logo": "era_revisorer.png",
+      "lank": "https://www.eranorr.se/"
+    },
+    {
+      "namn": "ERIKSSONS ENTREPRENAD AB",
+      "niva": null,
+      "logo": "erikssons_entreprenad.jpg",
+      "lank": null
+    },
+    {
+      "namn": "FEROS AB",
+      "niva": null,
+      "logo": null,
+      "lank": "https://feros.se/"
+    },
+    {
+      "namn": "GASOLFABRIKEN",
+      "niva": null,
+      "logo": "gasolfabriken.jpg",
+      "lank": null
+    },
+    {
+      "namn": "GRANBERGS BUSS AB",
+      "niva": null,
+      "logo": "granbergsbuss.jpg",
+      "lank": null
+    },
+    {
+      "namn": "GRANBERGS LANTBRUK",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "GRAVYRTJÄNST I PITEÅ AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "GUBBYGG AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "HANS FORSSELLS ÅKERI AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "HAPPY HOMES",
+      "niva": null,
+      "logo": "happy_homes.jpg",
+      "lank": null
+    },
+    {
+      "namn": "HELA HUSBESIKTNING AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "HEMA VERKSTADS AB",
+      "niva": null,
+      "logo": "hema_verkstads.png",
+      "lank": null
+    },
+    {
+      "namn": "ICA NÄRA HORTLAX",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "ICA NÄRA LILLPITE",
+      "niva": null,
+      "logo": "ica_nara_lillpite.jpg",
+      "lank": null
+    },
+    {
+      "namn": "INCHARGE SECURITY AB",
+      "niva": null,
+      "logo": "incharge_security.jpg",
+      "lank": null
+    },
+    {
+      "namn": "INSTALL",
+      "niva": null,
+      "logo": "install.jpg",
+      "lank": null
+    },
+    {
+      "namn": "JANNE RISBERG ENTREPRENAD AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "JE SCANDINAVIA ELECTRO AB",
+      "niva": null,
+      "logo": "je_scandinavinaelectro.jpg",
+      "lank": null
+    },
+    {
+      "namn": "JOHANSSON & LUNDMARK BYGG AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "KARLSSONS GLAS & BYGG AB",
+      "niva": null,
+      "logo": "karlssons_glas_bygg.jpg",
+      "lank": null
+    },
+    {
+      "namn": "KLARBYGG I NORR AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "KOMPETENSVY AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "LILJEDAHLS ELINSTALLATIONER AB",
+      "niva": null,
+      "logo": "liljedahls_elinstallationer.jpg",
+      "lank": null
+    },
+    {
+      "namn": "LILLPITE RÖR AB",
+      "niva": null,
+      "logo": "lillpite_ror.jpg",
+      "lank": "https://www.lillpiteror.se/"
+    },
+    {
+      "namn": "LINDAB BYGGPARTNER AB",
+      "niva": null,
+      "logo": "lindab.jpg",
+      "lank": null
+    },
+    {
+      "namn": "LJ 70 AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "M2 GOLV AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "MARINE GROUP AB",
+      "niva": null,
+      "logo": "marine_group.jpg",
+      "lank": null
+    },
+    {
+      "namn": "MARKTJÄNST I NORR AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "MASKINKONSULTEN PITEÅ AB",
+      "niva": null,
+      "logo": "maskinkonsulten.jpg",
+      "lank": null
+    },
+    {
+      "namn": "MICKE HOLM - ARTIST",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "MJ MONTAGE",
+      "niva": null,
+      "logo": "mjmontage.jpg",
+      "lank": null
+    },
+    {
+      "namn": "MOWOS AB",
+      "niva": null,
+      "logo": "mowos.jpg",
+      "lank": null
+    },
+    {
+      "namn": "NJH ENTREPRENAD AB",
+      "niva": null,
+      "logo": null,
+      "lank": "https://www.njh.se"
+    },
+    {
+      "namn": "NMV INDUSTRIPARTNER",
+      "niva": null,
+      "logo": "nmv_industripartner.png",
+      "lank": null
+    },
+    {
+      "namn": "NOAK GOLV AB",
+      "niva": null,
+      "logo": "noak_golv.jpg",
+      "lank": null
+    },
+    {
+      "namn": "NORDBERGS BUSS & RESETJÄNST AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "NORDELLS MÅLERI & DEKOR AB",
+      "niva": null,
+      "logo": "nordells_maleri.jpg",
+      "lank": null
+    },
+    {
+      "namn": "NORDIC POWER SVERIGE MASKIN & ENTREPRENAD",
+      "niva": null,
+      "logo": "nordic_power_maskin.jpg",
+      "lank": null
+    },
+    {
+      "namn": "NORDTOOL AB",
+      "niva": null,
+      "logo": "nordtool.jpg",
+      "lank": null
+    },
+    {
+      "namn": "NORRCNC AB",
+      "niva": null,
+      "logo": "norr_cnc.jpg",
+      "lank": null
+    },
+    {
+      "namn": "NUAB FALLSKYDD AB",
+      "niva": null,
+      "logo": "nuabfallskydd.jpg",
+      "lank": null
+    },
+    {
+      "namn": "PER LUNDGREN",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "PETTERSSON'S MARK & MASKIN AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "PITEORTENS CHARK",
+      "niva": null,
+      "logo": "piteortens_chark.jpg",
+      "lank": null
+    },
+    {
+      "namn": "PITEÅ MOTOROPTIMERING",
+      "niva": null,
+      "logo": "pitea_motoroptimering.jpg",
+      "lank": null
+    },
+    {
+      "namn": "PITEÅ NAPRAPATEN AB",
+      "niva": null,
+      "logo": "pitea_naprapaten.jpg",
+      "lank": null
+    },
+    {
+      "namn": "PITEÅ TRANSPORT AB",
+      "niva": null,
+      "logo": "pitea_transport.jpg",
+      "lank": null
+    },
+    {
+      "namn": "PIZZERIA VALENTINE",
+      "niva": null,
+      "logo": null,
+      "lank": "https://www.pizzeriavalentine.se"
+    },
+    {
+      "namn": "PRINTBYRÅN",
+      "niva": null,
+      "logo": "printbyran.jpg",
+      "lank": null
+    },
+    {
+      "namn": "PROCESSTEKNIK I PITEÅ AB",
+      "niva": null,
+      "logo": "processteknik.jpg",
+      "lank": null
+    },
+    {
+      "namn": "PSI MONTAGE AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "PULVERLACKEN",
+      "niva": null,
+      "logo": "pulverlacken.jpg",
+      "lank": null
+    },
+    {
+      "namn": "ROLF IVAR JOHANSSON ÅKERI I PITEÅ AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "SANFRIDSSONS MÅLERI AB",
+      "niva": null,
+      "logo": "sanfridssons_maleri.jpg",
+      "lank": null
+    },
+    {
+      "namn": "SESEMIC AB",
+      "niva": null,
+      "logo": null,
+      "lank": "https://www.sesemic.se/kontakt/pitea/"
+    },
+    {
+      "namn": "SF BRANDSKYDDSKONTROLL",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "SMARTPLANES TECHNOLOGIES",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "SPACE VVS-TEKNIK AB",
+      "niva": null,
+      "logo": "space_vvs.jpg",
+      "lank": null
+    },
+    {
+      "namn": "SUSHI ODOD I PITEÅ AB",
+      "niva": null,
+      "logo": "sushi_odod.jpg",
+      "lank": "https://www.sushiododpitea.se"
+    },
+    {
+      "namn": "TANDLÄKARNA LISA & LISA",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "THEKO AB",
+      "niva": null,
+      "logo": "theko.jpg",
+      "lank": null
+    },
+    {
+      "namn": "TJÄDERTUPPEN SVETS & KONSULT AB",
+      "niva": null,
+      "logo": "tjadertuppen.jpg",
+      "lank": null
+    },
+    {
+      "namn": "WESTMAN HYRCHAFFIS & MEK AB",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "WIXNERS PLÅT",
+      "niva": null,
+      "logo": null,
+      "lank": null
+    },
+    {
+      "namn": "WM GOLV AB",
+      "niva": null,
+      "logo": "wm_golv.png",
+      "lank": null
+    },
+    {
+      "namn": "FIRE SAFETY NORDIC",
+      "niva": null,
+      "logo": "fire_safety.jpg",
+      "lank": "https://www.fsn.se"
+    },
+    {
+      "namn": "MASKINKOMPONENTER I PITEÅ",
+      "niva": null,
+      "logo": "maskinkomponenter.png",
+      "lank": "https://www.maskinkomp.se"
+    },
+    {
+      "namn": "PITEÅ RÖRSERVICE AB",
+      "niva": null,
+      "logo": "pitea_ror_service.jpg",
+      "lank": null
+    },
+    {
+      "namn": "SOTARN I PITEÅ AB",
+      "niva": null,
+      "logo": "sotarn_pitea.jpg",
+      "lank": "https://www.sotningen.se"
+    },
+    {
+      "namn": "SWEDOL",
+      "niva": null,
+      "logo": "swedol.jpg",
+      "lank": null
+    },
+    {
+      "namn": "SWIRE RENEWABLE ENERGY",
+      "niva": null,
+      "logo": "swire_renewable.jpg",
+      "lank": "https://swire-re.com/"
+    },
+    {
+      "namn": "VÄRME O VENTILATIONS TEKNIK I NORR AB",
+      "niva": null,
+      "logo": "varme_ventilationsteknik.jpg",
+      "lank": "https://ventteknik.se"
+    },
+    {
+      "namn": "ÖJEBYNS GLAS & ALUMINIUM",
+      "niva": null,
+      "logo": "ojebyns_glas.jpg",
+      "lank": null
+    }
+  ]
+}

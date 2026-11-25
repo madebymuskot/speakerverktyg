@@ -1,0 +1,8 @@
+# Loggkällor
+
+- pitea.png — Piteå HC, samma klubblogga som redan används i hubben/klockan, signage och rapporterna.
+- kalix.png — Kalix HC, klubbsymbol från HockeyEttan (https://www.hockeyettan.se/wp-content/uploads/2016/09/Symbol.png). Relativt lågupplöst.
+- enkoping.png — Enköpings SK HK, från HockeyEttan (enk.png).
+- jarfalla.png — Järfälla HC, från HockeyEttan (JARFALLA-logo.png).
+- laitis.png — Laitis riktiga logotyp, röd skrift "Laitis" på transparent bakgrund, som Daniel skickade. Visas på en vit platta. Länken pekar på https://laitis.se/.
+- placeholder.png — neutral platshållare om en logga saknas.

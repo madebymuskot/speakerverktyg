@@ -1,0 +1,14 @@
+{
+  "kalla": "sasong",
+  "etikett": "Officiell laguppställning publiceras före match",
+  "status": "waiting_events",
+  "officiell": false,
+  "game_id": null,
+  "schedule_id": "90255224",
+  "lag": [],
+  "meta": {
+    "schedule_id": "90255224",
+    "game_id": null,
+    "id_source": null
+  }
+}

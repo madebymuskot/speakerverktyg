@@ -1,0 +1,9 @@
+warg.png
+  Utskuren från en PHC-grafik som Daniel skickade (texten "Warg lämnar Piteå Hockey").
+  Svart textplatta, logotyp och vit bakgrund är borttagna (beskärning + rembg).
+  Warg finns inte i nuvarande A-lagstrupp; bilden används som exempelporträtt
+  (query ?demo=portratt eller ?demo=info) tills riktiga spelarporträtt finns.
+
+index.json
+  "spelare" mappar "Lag|nummer" eller fullt namn till filnamn i den här mappen.
+  Saknas träff visas ingen bild (utom demoläget ovan).

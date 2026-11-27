@@ -1,5 +1,5 @@
 (() => {
-  const RUBRIKER = { meny: "Startmeny", laglista: "Laguppställning", rosta: "Matchens lirare", tack: "Matchens lirare", stangd: "Matchens lirare", livestat: "Livestat", spel: "Shootout" };
+  const RUBRIKER = { meny: "Startmeny", laglista: "Laguppställning", rosta: "Matchens lirare", tack: "Matchens lirare", stangd: "Matchens lirare", livestat: "Livestat", spel: "Shootout", music: "Music" };
   const SPEL_BARA_I_PAUS = false; // tills vidare alltid synlig; true = bara i periodpaus
   const SPEL_SKOTT_MAX = 5;
   const SPEL_BASTA_KEY = "publikapp-spel-basta";
@@ -19,8 +19,11 @@
     document.querySelectorAll(".vy").forEach((el) => {
       el.hidden = el.id !== "vy-" + namn;
     });
-    $("hSub").textContent = namn === "meny" ? "" : (RUBRIKER[namn] || "");
-    $("hSub").hidden = namn === "meny";
+    const music = namn === "music";
+    $("hSub").textContent = (namn === "meny" || music) ? "" : (RUBRIKER[namn] || "");
+    $("hSub").hidden = namn === "meny" || music;
+    const sponsor = $("hSponsor");
+    if (sponsor) sponsor.hidden = !music;
     document.body.classList.toggle("inner", namn !== "meny");
     const hash = namn === "stangd" ? "rosta" : namn;
     history.replaceState(null, "", "#" + hash);
@@ -29,6 +32,7 @@
     else stoppaLivestat();
     if (namn === "spel") startaSpelVy();
     else pausaSpelVy();
+    if (namn === "music") kopplaSpotify();
   }
 
 
@@ -772,7 +776,7 @@
     const params = new URLSearchParams(location.search);
     let start = (location.hash || "#meny").slice(1);
     document.body.classList.toggle("platta-vit", params.get("platta") === "vit");
-    if (!["meny", "laglista", "rosta", "tack", "stangd", "livestat", "spel"].includes(start)) start = "meny";
+    if (!["meny", "laglista", "rosta", "tack", "stangd", "livestat", "spel", "music"].includes(start)) start = "meny";
     if (start === "rosta" || start === "stangd") oppnRosta();
     else if (start === "tack") { ritaTack(); visa("tack"); }
     else if (start === "livestat") { ritaLivestat(); visa("livestat"); }
@@ -838,7 +842,7 @@
     const start = (location.hash || "#meny").slice(1);
     if (start === "rosta" || start === "stangd") oppnRosta();
     else if (start === "tack") { ritaTack(); visa("tack"); }
-    else if (["meny", "laglista", "livestat", "spel"].includes(start)) visa(start);
+    else if (["meny", "laglista", "livestat", "spel", "music"].includes(start)) visa(start);
   }
   window.addEventListener("hashchange", lasHash);
 
@@ -870,6 +874,44 @@
     if (e.key === "Escape") stangAlderDialog();
   });
 
+
+
+  function kopplaSpotify() {
+    const id = S.warmupSpellista ? S.warmupSpellista() : "";
+    const ruta = $("music-lista");
+    const ram = $("music-spotify");
+    const lank = $("music-spotify-lank");
+    if (!ram || !lank) return;
+    if (!id) {
+      if (ruta) ruta.hidden = true;
+      return;
+    }
+    if (ruta) ruta.hidden = false;
+    if (ram.dataset.id !== id) {
+      ram.dataset.id = id;
+      ram.src = "https://open.spotify.com/embed/playlist/" + id + "?theme=0";
+    }
+    lank.href = "https://open.spotify.com/playlist/" + id;
+  }
+
+  const musicForm = $("music-onskan");
+  if (musicForm) {
+    musicForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const lat = ($("music-lat").value || "").trim();
+      const tack = $("music-tack");
+      if (!lat) {
+        if (tack) tack.hidden = true;
+        $("music-lat").focus();
+        return;
+      }
+      musicForm.reset();
+      if (tack) {
+        tack.hidden = false;
+        tack.focus();
+      }
+    });
+  }
 
   let tryckTimer = null;
   function slappTryck(el) {
@@ -1840,6 +1882,7 @@
       hamtaSponsorer();
       S.onChange(() => {
         render();
+        kopplaSpotify();
         if ((val.vy === "rosta" || val.vy === "stangd") && location.hash.slice(1) === "rosta") oppnRosta();
       });
     });

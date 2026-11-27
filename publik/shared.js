@@ -13,6 +13,17 @@ window.PublikState = (() => {
     ));
   }
 
+  function spotifySpellisteId(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    const m = s.match(/(?:playlist[/:])([A-Za-z0-9]{22})/i) || s.match(/^([A-Za-z0-9]{22})$/);
+    return m ? m[1] : "";
+  }
+
+  function warmupSpellista() {
+    return spotifySpellisteId(state && state.spotifyWarmup) || spotifySpellisteId(data && data.spotify_warmup_playlist) || "";
+  }
+
   function normalize(raw) {
     const s = raw && typeof raw === "object" ? raw : {};
     const meny = s.meny || {};
@@ -47,6 +58,7 @@ window.PublikState = (() => {
           lank: typeof mv.lank === "string" ? mv.lank.trim() : (def.lank || ""),
         };
       })(),
+      spotifyWarmup: spotifySpellisteId(typeof s.spotifyWarmup === "string" ? s.spotifyWarmup : ""),
     };
   }
 
@@ -285,5 +297,5 @@ window.PublikState = (() => {
 
   function onChange(fn) { listeners.push(fn); }
 
-  return { init, get, getData, set, match, matchTid, narmasteMatch, visadMatchId, lag, logoUrl, liveFranKlocka, livestatFranHub, playerId, rosterForMatch, rostaPa, nollstallRoster, onChange, esc };
+  return { init, get, getData, set, match, matchTid, narmasteMatch, visadMatchId, lag, logoUrl, liveFranKlocka, livestatFranHub, playerId, rosterForMatch, rostaPa, nollstallRoster, onChange, esc, spotifySpellisteId, warmupSpellista };
 })();

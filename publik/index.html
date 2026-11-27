@@ -13,6 +13,7 @@
     <header>
       <img class="phc-logo" src="logos/pitea.png" alt="Piteå HC">
       <div id="hSub" hidden></div>
+      <img id="hSponsor" class="h-sponsor" src="assets/sunpine_logo_white.png" alt="SunPine" hidden>
     </header>
     <main>
       <section id="vy-meny" class="vy">
@@ -70,7 +71,13 @@
             <span class="ikon" aria-hidden="true">
               <img src="logos/sponsorer/olearys.png" alt="">
             </span>
-            <span class="val-text">Spela Shootout</span>
+            <span class="val-text">O'Learys Shootout</span>
+          </button>
+          <button class="val" type="button" id="val-music" data-vy="music">
+            <span class="ikon">
+              <img src="assets/sunpine_logo_white.png" alt="SunPine">
+            </span>
+            <span class="val-text">Music</span>
           </button>
         </nav>
         <section id="partners" class="partners" aria-labelledby="partners-rubrik" hidden></section>
@@ -160,6 +167,65 @@
             <span class="val-text">Spela igen</span>
           </button>
         </div>
+      </section>
+
+      <section id="vy-music" class="vy" hidden>
+        <button class="tillbaka val val-bred" type="button" data-vy="meny">
+          <span class="ikon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" focusable="false"><path fill="currentColor" d="M28.8 8.4 13.2 24l15.6 15.6 3.4-3.4L20 24l12.2-12.2z"/></svg>
+          </span>
+          <span class="val-text">Tillbaka</span>
+        </button>
+        <article class="music-nu" aria-live="polite">
+          <p class="music-exempel">Exempel – så här kan det se ut</p>
+          <div class="music-nu-rad">
+            <span class="music-puls" aria-hidden="true"></span>
+            <div class="etikett">Spelas nu</div>
+          </div>
+          <div class="music-omslag" aria-hidden="true">
+            <svg viewBox="0 0 120 120" focusable="false">
+              <defs>
+                <radialGradient id="music-skiva" cx="36%" cy="30%" r="72%">
+                  <stop offset="0%" stop-color="#4a181e"/>
+                  <stop offset="28%" stop-color="#1a070a"/>
+                  <stop offset="100%" stop-color="#070203"/>
+                </radialGradient>
+              </defs>
+              <circle cx="60" cy="60" r="60" fill="url(#music-skiva)"/>
+              <circle cx="60" cy="60" r="53" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+              <circle cx="60" cy="60" r="47" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+              <circle cx="60" cy="60" r="41" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+              <circle cx="60" cy="60" r="35" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+              <circle cx="60" cy="60" r="29" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+              <circle cx="60" cy="60" r="20" fill="#8a1d28"/>
+              <circle cx="60" cy="60" r="20" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.2"/>
+              <circle cx="60" cy="60" r="4.5" fill="#140306"/>
+            </svg>
+          </div>
+          <div class="music-titel">We Will Rock You</div>
+          <div class="music-artist">Queen</div>
+          <div class="music-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        </article>
+        <section class="music-lista" id="music-lista">
+          <h2>Lagets uppvärmningslåtar</h2>
+          <p class="music-lista-under">Musiken som A-laget värmer upp till inför matchen</p>
+          <iframe id="music-spotify" class="music-spotify" title="Lagets uppvärmningslåtar" width="100%" height="352" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+          <a id="music-spotify-lank" class="music-spotify-lank" href="https://open.spotify.com/playlist/2kPAkvuy6TEMScZIEjfqMl" target="_blank" rel="noopener noreferrer">Öppna i Spotify</a>
+        </section>
+        <hr class="music-delare">
+        <form id="music-onskan" class="music-form">
+          <h2>Önska en låt</h2>
+          <p class="notis">Man blir då automatiskt med i tävlingen Matchens låt.</p>
+          <p class="music-pris">Priset delas ut i samarbete med SunPine.</p>
+          <label for="music-lat">Låt</label>
+          <input id="music-lat" name="lat" type="text" maxlength="80" required autocomplete="off" spellcheck="false" placeholder="Låttitel">
+          <label for="music-artist">Artist <span class="valfri">(valfritt)</span></label>
+          <input id="music-artist" name="artist" type="text" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Artist">
+          <label for="music-halsning">Namn eller hälsning <span class="valfri">(valfritt)</span></label>
+          <input id="music-halsning" name="halsning" type="text" maxlength="40" autocomplete="nickname" spellcheck="false" placeholder="T.ex. från läktaren">
+          <button type="submit" id="music-skicka">Skicka önskan</button>
+          <p id="music-tack" class="music-tack" hidden>Tack, din önskan är med.</p>
+        </form>
       </section>
 
       <section id="vy-stangd" class="vy" hidden>

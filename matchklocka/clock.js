@@ -162,7 +162,7 @@ MK.fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Game/
   if(teams.length<2)throw Error('Ingen laguppställning hittades');teams.forEach(MK.luord);return teams};
 /* Officiell uppställningsordning: målvakter, femma 1–4, övriga (aldrig tröjnummer). Spegelvänd bortaordning vänds rätt. */
 MK.luord=t=>{const P=t.players,gk=P.filter(x=>x.pos==='M'),sk=P.filter(x=>x.pos!=='M'&&x.ln),ex=P.filter(x=>x.pos!=='M'&&!x.ln);if(sk.length>1&&sk[0].ln>sk[sk.length-1].ln){sk.reverse();gk.reverse()}t.players=gk.concat(sk,ex);return t};
-MK.loadGame=async gid=>{const t=await MK.fetchLineup(gid),s=MK.state;const same=s.gid===gid;if(!same)s.mid=MK.newMid();const sw=s.swName||[];if(!same||s.home===sw[0]||!sw[0])s.home=t[0].name;if(!same||s.away===sw[1]||!sw[1])s.away=t[1].name;if(!same)s.short=['',''];s.gid=gid;s.swName=[t[0].name,t[1].name];s.rosters=[t[0].players,t[1].players];if(t.start&&(!same||!s.startTime||s.startTime===s.swStart)){s.startTime=t.start.time;s.startDate=t.start.date}if(t.start)s.swStart=t.start.time;MK.save();return t};
+MK.loadGame=async raw=>{const gid=(typeof GameId!=='undefined'&&GameId.resolveGameId)?await GameId.resolveGameId(raw):String(raw||'').trim();const t=await MK.fetchLineup(gid),s=MK.state;const same=s.gid===gid;if(!same)s.mid=MK.newMid();const sw=s.swName||[];if(!same||s.home===sw[0]||!sw[0])s.home=t[0].name;if(!same||s.away===sw[1]||!sw[1])s.away=t[1].name;if(!same)s.short=['',''];s.gid=gid;s.swName=[t[0].name,t[1].name];s.rosters=[t[0].players,t[1].players];if(t.start&&(!same||!s.startTime||s.startTime===s.swStart)){s.startTime=t.start.time;s.startDate=t.start.date}if(t.start)s.swStart=t.start.time;MK.save();return t};
 MK.pname2=(s,t,nr)=>{const p=((s.rosters||[])[t]||[]).find(p=>p.no==nr);return p?p.name:''};
 // Automatiskt matchflöde: period slut -> paus (räknar ner) -> nästa period laddad, stoppad
 MK.nextOf=s=>({P1:'P2',P2:'P3',P3:s.goals[0]===s.goals[1]&&(s.len.OT??5)>0?'OT':'SLUT',OT:'SLUT'})[s.period]||null;
@@ -229,7 +229,7 @@ MK.todHide=id=>{const f=()=>{const e=document.getElementById(id);if(e&&MK.state)
 // HIDDEN-SCREENS: skärmar som Daniel lagt åt sidan. De döljs i Klockas Utgångar-lista (och i startsidornas länkar, se index.html/matchklocka/index.html)
 // men sidorna fungerar vid direkt URL och räknas alltid som PÅ. Ta bort en nyckel ur listan nedan för att få tillbaka den i Utgångar.
 MK.HIDDEN_OUTPUTS=['tv','scorebug','mal','utv'];
-MK.ALL_OUTPUTS=[['jumbo','Jumbotron'],['jumboNdi','NDI Jumbotron'],['tv','TV'],['scorebug','NDI Scorebug'],['mal','NDI Målgrafik'],['utv','NDI Utvisningsgrafik'],['omkl','Omklädningsrum'],['domare','Domarskärm']];
+MK.ALL_OUTPUTS=[['jumbo','Jumbotron'],['jumboNdi','NDI Jumbotron'],['tv','TV'],['scorebug','NDI Scorebug'],['mal','NDI Målgrafik'],['utv','NDI Utvisningsgrafik'],['omkl','Omklädningsrum'],['domare','Domarskärm'],['bas0','Båsskärm hemma'],['bas1','Båsskärm borta']];
 MK.OUTPUTS=MK.ALL_OUTPUTS.filter(o=>!MK.HIDDEN_OUTPUTS.includes(o[0]));
 MK.outOn=k=>{if(MK.HIDDEN_OUTPUTS.includes(k))return true;/* NDI Jumbotron är en sändare – av tills den kryssas i (övriga skärmar är på tills de kryssas ur) */if(k==='jumboNdi')return !!(MK.state&&MK.state.outputs&&MK.state.outputs[k]===true);return !(MK.state&&MK.state.outputs&&MK.state.outputs[k]===false)};
 MK.setOutput=(k,on)=>{MK.state.outputs=Object.assign({},MK.state.outputs);MK.state.outputs[k]=!!on;MK.save()};

@@ -1,4 +1,217 @@
-<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="sv"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8"><script>
+/* Gemensam upplösning av matchnummer: 7-siffrigt game_id eller grupp + match (schedule_id).
+   Schema-id används aldrig som LineUps-/Events-id. */
+(function (root) {
+  'use strict';
+  var BASE = 'https://stats.swehockey.se';
+  var GROUP_SERIES = {
+    '90255': {seriesId: 21043, lag: 'A', namn: 'Hockeyettan Norra'},
+    '96761': {seriesId: 21300, lag: 'U18', namn: 'U18'},
+    '96702': {seriesId: 21294, lag: 'U20', namn: 'U20'},
+    '96210': {seriesId: 21319, lag: 'HT2', namn: 'HockeyTvåan Region Norr A'}
+  };
+  var KNOWN_SERIES = [];
+  (function () {
+    var seen = {};
+    Object.keys(GROUP_SERIES).forEach(function (k) {
+      var s = GROUP_SERIES[k];
+      if (!seen[s.seriesId]) { seen[s.seriesId] = 1; KNOWN_SERIES.push(s); }
+    });
+  })();
+  var PROBE_BEFORE = 40, PROBE_AFTER = 150, PROBE_PARALLEL = 10;
+  var LS_KEY = 'swehockey_gameid_cache_v1';
+  var MSG = {
+    empty: 'Ange matchnummer eller grupp + match, till exempel 96210 031.',
+    bad: 'Ogiltigt matchnummer. Ange 7-siffrigt matchnummer eller grupp + match, till exempel 96210 031.',
+    notFound: function (sid) {
+      return 'Hittade inte match ' + sid + ' i schemat. Kontrollera grupp- och matchnummer, eller klistra in det 7-siffriga matchnumret från Swehockey.';
+    },
+    noLineup: function (info) {
+      return 'Matchen finns i schemat' + (info ? ' (' + info + ')' : '') + ' men laglistan är inte publicerad ännu. Klistra in det 7-siffriga matchnumret om du har det.';
+    }
+  };
+
+  function ws(s) { return String(s || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim(); }
+
+  function parseMatchInput(raw) {
+    var s = ws(raw);
+    if (!s) return {kind: 'error', message: MSG.empty};
+    var um = s.match(/\/Game\/(?:LineUps|Events)\/(\d{6,7})\b/);
+    if (um) return {kind: 'game_id', gameId: um[1]};
+    var m = s.match(/^(\d{5})[\s/.\-]+(\d{1,3})$/);
+    if (m) {
+      var sid = m[1] + m[2].padStart(3, '0');
+      return {kind: 'schedule_id', scheduleId: sid, group: m[1], gameNo: m[2].padStart(3, '0')};
+    }
+    if (/^\d{8}$/.test(s)) {
+      return {kind: 'schedule_id', scheduleId: s, group: s.slice(0, 5), gameNo: s.slice(5)};
+    }
+    if (/^\d{6,7}$/.test(s)) return {kind: 'game_id', gameId: s};
+    return {kind: 'error', message: MSG.bad};
+  }
+
+  function loadLsCache() {
+    if (typeof localStorage === 'undefined') return {};
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveLsCache(cache) {
+    if (typeof localStorage === 'undefined') return;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(cache)); } catch (e) {}
+  }
+
+  function parseSchedule(html, lag) {
+    var out = [];
+    var date = '';
+    var rows = String(html || '').split(/<tr\b/i).slice(1);
+    for (var i = 0; i < rows.length; i++) {
+      var tr = rows[i].replace(/^[^>]*>/, '').split(/<\/tr>/i)[0];
+      var tds = [];
+      var tdRe = /<td\b[^>]*>([\s\S]*?)<\/td>/gi, td;
+      while ((td = tdRe.exec(tr))) tds.push(td[1]);
+      if (tds.length < 4) continue;
+      var txt = tds.map(function (cell) { return ws(cell.replace(/<[^>]+>/g, ' ')); });
+      var dm = txt[0].match(/\b(\d{4}-\d{2}-\d{2})\b/);
+      if (dm) date = dm[1];
+      var timeCell = txt.find(function (t) { return /^(?:\d{4}-\d{2}-\d{2} )?\d{1,2}:\d{2}$/.test(t); });
+      var game = txt.find(function (t) { return /.+ - .+/.test(t) && !/\d+ - \d+$/.test(t); });
+      if (!date || !timeCell || !game) continue;
+      var teams = game.split(' - ').map(ws);
+      if (teams.length < 2) continue;
+      var ev = tr.match(/\/Game\/(?:Events|LineUps)\/(\d+)/);
+      var tip = tr.match(/lnkTooltip"[^>]*title="(\d+)"/i) || tr.match(/title="(\d+)"[^>]*lnkTooltip/i);
+      var sid = tip ? tip[1] : null;
+      var gid = ev ? ev[1] : null;
+      if (gid && sid && gid === sid) gid = null;
+      out.push({
+        date: date,
+        time: timeCell.slice(-5),
+        teams: teams,
+        arena: txt[txt.length - 1],
+        lag: lag || '',
+        scheduleId: sid,
+        gid: gid
+      });
+    }
+    return out;
+  }
+
+  function lineupMatches(html, g) {
+    var t = ws(String(html || '').replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]+>/g, ' ')).toLowerCase();
+    if (!t) return false;
+    var h = ws(g.teams[0]).toLowerCase(), a = ws(g.teams[1]).toLowerCase();
+    return t.indexOf(g.date) !== -1 && t.indexOf(h + ' - ' + a) !== -1;
+  }
+
+  async function getPath(path, getFn) {
+    if (getFn) return getFn(path);
+    var r = await fetch(BASE + path, {cache: 'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.text();
+  }
+
+  async function mapPool(items, n, fn) {
+    var ret = new Array(items.length);
+    var i = 0;
+    async function worker() {
+      while (i < items.length) {
+        var j = i++;
+        try { ret[j] = await fn(items[j]); } catch (e) { ret[j] = null; }
+      }
+    }
+    var w = [];
+    for (var k = 0; k < Math.max(1, n); k++) w.push(worker());
+    await Promise.all(w);
+    return ret;
+  }
+
+  async function probeGame(row, games, opts) {
+    var known = games.map(function (g) { return g.gid; }).filter(function (id) {
+      return id && /^\d+$/.test(id) && !games.some(function (x) { return x.scheduleId === id; });
+    }).map(Number).sort(function (a, b) { return a - b; });
+    if (!known.length) return null;
+    var lo = known[0] - PROBE_BEFORE, hi = known[known.length - 1] + PROBE_AFTER;
+    var skip = {};
+    known.forEach(function (id) { skip[id] = 1; });
+    var cands = [];
+    for (var i = lo; i <= hi; i++) if (!skip[i]) cands.push(i);
+    var found = null;
+    await mapPool(cands, (opts && opts.parallel) || PROBE_PARALLEL, async function (id) {
+      if (found) return null;
+      var html;
+      try { html = await getPath('/Game/LineUps/' + id, opts && opts.get); } catch (e) { return null; }
+      if (found) return null;
+      if (lineupMatches(html, row)) found = String(id);
+      return null;
+    });
+    return found;
+  }
+
+  function remember(cache, sid, gid, saveFn) {
+    cache[sid] = String(gid);
+    (saveFn || saveLsCache)(cache);
+  }
+
+  async function findRow(sid, group, opts) {
+    var getFn = opts && opts.get;
+    var mapped = GROUP_SERIES[group];
+    var games = [], row = null, lastErr = null;
+    async function scan(list) {
+      for (var i = 0; i < list.length; i++) {
+        var ser = list[i];
+        try {
+          var html = await getPath('/ScheduleAndResults/Schedule/' + ser.seriesId, getFn);
+          var gs = parseSchedule(html, ser.lag);
+          games = games.concat(gs);
+          var hit = gs.find(function (g) { return g.scheduleId === sid; });
+          if (hit) { row = hit; return; }
+        } catch (e) { lastErr = e; }
+      }
+    }
+    if (mapped) await scan([mapped]);
+    if (!row) {
+      var rest = KNOWN_SERIES.filter(function (s) { return !mapped || s.seriesId !== mapped.seriesId; });
+      await scan(rest);
+    }
+    return {row: row, games: games, lastErr: lastErr};
+  }
+
+  async function resolveGameId(raw, opts) {
+    opts = opts || {};
+    var p = parseMatchInput(raw);
+    if (p.kind === 'error') throw new Error(p.message);
+    if (p.kind === 'game_id') return p.gameId;
+    var sid = p.scheduleId;
+    var cache = opts.cache || loadLsCache();
+    if (cache[sid]) return String(cache[sid]);
+    var found = await findRow(sid, p.group, opts);
+    if (!found.row) throw new Error(MSG.notFound(sid));
+    var row = found.row;
+    var gid = row.gid && row.gid !== sid ? String(row.gid) : null;
+    if (!gid) gid = await probeGame(row, found.games, opts);
+    if (gid) {
+      remember(cache, sid, gid, opts.saveCache);
+      return String(gid);
+    }
+    var info = [row.teams && row.teams.join(' – '), row.date].filter(Boolean).join(', ');
+    throw new Error(MSG.noLineup(info));
+  }
+
+  var api = {
+    BASE: BASE,
+    GROUP_SERIES: GROUP_SERIES,
+    KNOWN_SERIES: KNOWN_SERIES,
+    MSG: MSG,
+    parseMatchInput: parseMatchInput,
+    parseSchedule: parseSchedule,
+    lineupMatches: lineupMatches,
+    resolveGameId: resolveGameId,
+    probeGame: probeGame
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.GameId = api;
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));
+
+</script><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Speaker (fristående)</title><style>
 *{box-sizing:border-box}body{margin:0;background:#000;color:#fff;font-family:system-ui,Arial,sans-serif}
 header{padding:10px 14px;background:#111;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -31,7 +244,7 @@ html,body{max-width:100%;overflow-x:clip}
 @media(max-width:700px){.mr{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)!important}.mr .lbl{grid-column:1/-1}.mr input.tt{width:100%}}
 #roster.two{columns:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}@media(max-width:799px){#roster.two{grid-template-columns:minmax(0,1fr)}}
 </style><script>/* Tryckeffekt: knappar blir tillfälligt gula (#FFB000, mörk text) vid tryck, mus/touch/tangentbord.
-   Delegerat på document, så ingen knapp behöver ändras. Lägg en script-tagg med src="tapfx.js?v=20261111-1930" i modulens head för att aktivera.
+   Delegerat på document, så ingen knapp behöver ändras. Lägg en script-tagg med src="tapfx.js?v=20261127-1754" i modulens head för att aktivera.
    Undantag: disabled-knappar och knappar med data-nofx. Knappar med data-tapfx="red" får röd tryckfeedback i stället (bara Mute i Klocka). Ändrar aldrig storlek (bara färg), och klassen tas bort efter ~300 ms. */
 (()=>{if(window.TAPFX)return;window.TAPFX=1;
 const st=document.createElement('style');
@@ -64,7 +277,7 @@ document.addEventListener('click',e=>{const b=btn(e);if(!b)return;if(e.detail===
 <div class="row"><div class="lbl">NUMMER</div><input id="s0" inputmode="numeric" maxlength="2"><div class="res" id="rs0"></div></div><div id="sc"></div><div style="color:#777;font-size:13px" id="ssrc"></div></main>
 <main id="vL" style="display:none"><div class="row" style="grid-template-columns:110px 1fr"><div class="lbl">LAG</div><div class="stb" id="ltb" style="display:flex;gap:12px;flex-wrap:wrap"></div></div>
 <div class="lgrid"><section><div class="lh">LINE-UP <span id="lcnt"></span></div><ol id="lsel"></ol><div class="pbar"><button id="lclr">RENSA LISTAN</button></div></section>
-<section><div class="lh">TRUPP <small>klicka för att välja (max 6)</small></div><div id="lall"></div></section></div><div id="ltr" style="margin:28px 14px 0;color:#999;font-size:15px;line-height:1.6"></div><div id="ldom" style="margin:14px 14px 10px;color:#999;font-size:15px;line-height:1.6"></div><div id="lmBox" style="margin-top:28px;padding:14px;border-top:1px solid #333"><h2>Ladda match (swehockey)</h2><div style="display:grid;grid-template-columns:130px 140px auto auto;gap:10px;align-items:center"><span style="color:#ccc;font-size:16px">Matchnummer</span><input id="lmGid" inputmode="numeric" style="font-size:18px;padding:8px;width:130px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #555;border-radius:8px"><button id="lmB" style="background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:8px;font-size:16px;padding:8px 14px;font-weight:600">Ladda match</button><button id="lmR" style="background:#2a2a2a;color:#ccc;border:1px dashed #888;border-radius:8px;font-size:14px;padding:8px 12px;margin-left:12px">↺ Nollställ modul</button></div><div id="lmMsg" style="color:#bbb;font-size:14px;margin-top:8px"></div></div>
+<section><div class="lh">TRUPP <small>klicka för att välja (max 6)</small></div><div id="lall"></div></section></div><div id="ltr" style="margin:28px 14px 0;color:#999;font-size:15px;line-height:1.6"></div><div id="ldom" style="margin:14px 14px 10px;color:#999;font-size:15px;line-height:1.6"></div><div id="lmBox" style="margin-top:28px;padding:14px;border-top:1px solid #333"><h2>Ladda match (swehockey)</h2><div style="display:grid;grid-template-columns:130px 410px auto auto auto;gap:10px;align-items:center"><span style="color:#ccc;font-size:16px">Matchnummer</span><input id="lmGid" style="font-size:18px;padding:8px;width:400px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #555;border-radius:8px" placeholder="Matchnr eller grupp + match (96210 031)" title="7-siffrigt matchnummer eller grupp + match från rapporten, till exempel 96210 031"><button id="lmB" style="background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:8px;font-size:16px;padding:8px 14px;font-weight:600">Ladda match</button><button id="lmR" style="background:#2a2a2a;color:#ccc;border:1px dashed #888;border-radius:8px;font-size:14px;padding:8px 12px;margin-left:12px">↺ Nollställ modul</button></div><div id="lmMsg" style="color:#bbb;font-size:14px;margin-top:8px"></div></div>
 <style>@media(max-width:700px){#lmBox>div{grid-template-columns:110px 1fr!important}#lmBox button{grid-column:1/-1}}</style></main>
 <style>#vR .pbar button{font-size:15px!important;padding:8px 14px!important;min-height:40px;height:auto!important;flex:0 0 auto!important;width:auto!important}#vR .pbar{gap:8px;align-items:center}#vR .pbar button{background:#2a2a2a!important;color:#ddd!important;border:1px solid #555!important;border-radius:8px!important;font-weight:600!important;box-shadow:none!important}#vR .pbar button:hover{background:#3a3a3a!important}#vR #rclr{color:#e88!important;border-color:#8a3a3a!important}</style><main id="vR" style="display:none"><div class="pbar"><button id="rcsv">LADDA NER CSV</button><button id="rprint">SKRIV UT</button><button id="rclr">RENSA PROTOKOLL</button><span id="rsum"></span></div><table id="rtab"></table><div id="mskt"></div><div id="skott"></div><div id="publik"></div><div id="nasta"></div></main>
 <style id="savecss">@media(min-width:800px){.mr,#vG>.row:not(:first-child){grid-template-columns:84px 70px minmax(0,1fr)!important;gap:6px 10px!important;padding:8px 12px!important}.mr>.lbl,#vG>.row>.lbl{grid-column:1!important;min-width:0!important;font-size:17px!important;text-align:left;margin:0;padding:0;white-space:nowrap}.mr input,#vG>.row:not(:first-child) input{font-size:30px!important;width:100%!important;min-width:56px;box-sizing:border-box;padding:2px 4px!important;text-align:center}.mr input.tt,#vG #gt{grid-column:2/-1;justify-self:start;width:112px!important;font-size:26px!important;padding:3px 8px!important}.mr .res,#vG .res{font-size:clamp(18px,2vw,24px)!important}.mr .res small{font-size:15px!important}#vG #rgt{font-size:20px!important}.mc{gap:10px}}
@@ -126,7 +339,7 @@ input{border:3px solid #AF2E32}input:focus{outline:4px solid #fff;border-color:#
 .tabs button.on{background:#333;border-color:#FFB000}.tabs .tl,.tabs small{display:none!important}.tabs .ts{display:inline}#toast{left:10px;right:10px;bottom:10px;font-size:18px}}
 </style>
 <script>
-let D={"id": "1116192", "refs": [{"role": "Huvuddomare", "name": "Christer Sjöberg", "town": ""}, {"role": "Linjedomare", "name": "Franziska Stocker", "town": ""}, {"role": "Linjedomare", "name": "Sebastian Schou", "town": ""}], "title": "PIT - CHC2 (Line Up)", "lag": "U18", "u18": true, "date": "2026-11-11", "teams": [{"name": "Piteå HC", "color": "Red", "players": [{"no": "31", "first": "Edwin", "last": "Fredriksson", "pos": "Målvakt", "line": ""}, {"no": "30", "first": "Herman", "last": "Ermebring", "pos": "Målvakt", "line": ""}, {"no": "66", "first": "Viggo", "last": "Lagerbom", "pos": "Back", "line": "Line 1"}, {"no": "52", "first": "Oliver", "last": "Dahlbäck", "pos": "Back", "line": "Line 1"}, {"no": "88", "first": "Ludvig", "last": "Hedlund", "pos": "Forward", "line": "Line 1"}, {"no": "9", "first": "Ville", "last": "Wimander", "pos": "Forward", "line": "Line 1"}, {"no": "91", "first": "Ludvig", "last": "Hansen", "pos": "Forward", "line": "Line 1"}, {"no": "10", "first": "Max", "last": "Risberg", "pos": "Back", "line": "Line 2"}, {"no": "5", "first": "Nils", "last": "Elfström", "pos": "Back", "line": "Line 2"}, {"no": "22", "first": "Isaac", "last": "Holmgren", "pos": "Forward", "line": "Line 2"}, {"no": "41", "first": "Elias", "last": "Lundmark", "pos": "Forward", "line": "Line 2"}, {"no": "71", "first": "Lukas", "last": "Waaranperä", "pos": "Forward", "line": "Line 2"}, {"no": "18", "first": "Alfred", "last": "Kjerrulf", "pos": "Back", "line": "Line 3"}, {"no": "7", "first": "Valter", "last": "Bågesund", "pos": "Back", "line": "Line 3"}, {"no": "21", "first": "Erik", "last": "Bergman", "pos": "Forward", "line": "Line 3"}, {"no": "26", "first": "Jeronimo", "last": "Johansson", "pos": "Forward", "line": "Line 3"}, {"no": "27", "first": "Herman", "last": "Ebermark", "pos": "Forward", "line": "Line 3"}, {"no": "15", "first": "Frans", "last": "Öberg", "pos": "Forward", "line": "Line 4"}, {"no": "74", "first": "Elias", "last": "Vinblad Von Walter", "pos": "Forward", "line": "Line 4"}, {"no": "4", "first": "Melker", "last": "Hurtig", "pos": "Forward", "line": "Line 4"}], "coaches": ["Head Coach: Nyström, Anders"]}, {"name": "Clemensnäs HC 2", "color": "Blue", "players": [{"no": "35", "first": "Alve", "last": "Norberg", "pos": "Målvakt", "line": ""}, {"no": "1", "first": "Edvin", "last": "Abrahamsson", "pos": "Målvakt", "line": ""}, {"no": "8", "first": "Alvin", "last": "Majanen", "pos": "Back", "line": "Line 1"}, {"no": "55", "first": "Oliver", "last": "Lärneklev", "pos": "Back", "line": "Line 1"}, {"no": "51", "first": "Lukas", "last": "Nordlund", "pos": "Forward", "line": "Line 1"}, {"no": "57", "first": "Anton", "last": "Hällgren", "pos": "Forward", "line": "Line 1"}, {"no": "50", "first": "Vilgot", "last": "Vesterlund", "pos": "Forward", "line": "Line 1"}, {"no": "4", "first": "Viggo", "last": "Tibbelin", "pos": "Back", "line": "Line 2"}, {"no": "20", "first": "Axel", "last": "Åström", "pos": "Back", "line": "Line 2"}, {"no": "12", "first": "Tage", "last": "Westerlund", "pos": "Forward", "line": "Line 2"}, {"no": "39", "first": "William", "last": "Mattsson", "pos": "Forward", "line": "Line 2"}, {"no": "49", "first": "Liam", "last": "Kauppi", "pos": "Forward", "line": "Line 2"}, {"no": "13", "first": "Felix", "last": "Fahlman Sundh", "pos": "Back", "line": "Line 3"}, {"no": "10", "first": "Wille", "last": "Johansson", "pos": "Back", "line": "Line 3"}, {"no": "28", "first": "Milton", "last": "Norlund", "pos": "Forward", "line": "Line 3"}, {"no": "29", "first": "Albin", "last": "Johansson", "pos": "Forward", "line": "Line 3"}, {"no": "18", "first": "Karl", "last": "Lundquist", "pos": "Forward", "line": "Line 3"}, {"no": "11", "first": "Ruben", "last": "Ruljeff", "pos": "Back", "line": "Line 4"}, {"no": "15", "first": "Edward", "last": "Wikström Öhman", "pos": "Forward", "line": "Line 4"}, {"no": "16", "first": "Oskar", "last": "Dahl", "pos": "Forward", "line": "Line 4"}], "coaches": ["Head Coach: Stenberg, Elvin"]}], "fetched": "2026-11-11 19:09", "gid": "1116192", "time": "19:30", "arena": "Isstadion LF Arena", "shots": null, "next": {"date": "2026-11-29", "datum": "söndag 29 november", "time": "15:30", "opp": "Lycksele", "arena": "LF Arena", "line": "Nästa hemmamatch spelas söndag 29 november klockan 15.30 mot Lycksele, här i LF Arena. Välkomna tillbaka!", "src": "U18 Div 1 Norr A spelschema (2026-11-09)"}, "next_away": {"date": "2026-11-19", "datum": "torsdag 19 november", "time": "19:30", "opp": "Brooklyn", "arena": "Lulebohallen", "line": "Nästa bortamatch spelas torsdag 19 november klockan 19.30 mot Brooklyn, i Lulebohallen.", "src": "U18 Div 1 Norr A spelschema (2026-11-09)"}};const D0=D;
+let D={"id": "1112977", "refs": [{"role": "Huvuddomare", "name": "Marcus Rosenberg", "town": ""}, {"role": "Linjedomare", "name": "Jens Dyrlind", "town": ""}, {"role": "Linjedomare", "name": "Filip Berglund", "town": ""}], "title": "PIT - KAL (Line Up)", "lag": "A", "u18": false, "date": "2026-11-27", "teams": [{"name": "Piteå HC", "color": "Red", "players": [{"no": "34", "first": "Sebastian", "last": "Andersson", "pos": "Målvakt", "line": ""}, {"no": "31", "first": "Jonathan", "last": "Reinholdt", "pos": "Målvakt", "line": ""}, {"no": "71", "first": "Viktor", "last": "Åström", "pos": "Back", "line": "Line 1"}, {"no": "7", "first": "Linus", "last": "Lindmark", "pos": "Back", "line": "Line 1"}, {"no": "25", "first": "Oliver", "last": "Lindgren", "pos": "Forward", "line": "Line 1"}, {"no": "21", "first": "Caesar", "last": "Björk", "pos": "Forward", "line": "Line 1"}, {"no": "29", "first": "Isak", "last": "Holmström", "pos": "Forward", "line": "Line 1"}, {"no": "26", "first": "Jonathan", "last": "Lidman", "pos": "Back", "line": "Line 2"}, {"no": "32", "first": "Edward", "last": "Björk", "pos": "Back", "line": "Line 2"}, {"no": "27", "first": "Oscar", "last": "Bramberg", "pos": "Forward", "line": "Line 2"}, {"no": "89", "first": "Oscar", "last": "Nilsson", "pos": "Forward", "line": "Line 2"}, {"no": "10", "first": "Nils", "last": "Bolin", "pos": "Forward", "line": "Line 2"}, {"no": "14", "first": "Henrik", "last": "Claeson", "pos": "Back", "line": "Line 3"}, {"no": "9", "first": "Lukas", "last": "Cederholm", "pos": "Back", "line": "Line 3"}, {"no": "11", "first": "Albin", "last": "Nylund", "pos": "Forward", "line": "Line 3"}, {"no": "36", "first": "Melvin", "last": "Pettersson", "pos": "Forward", "line": "Line 3"}, {"no": "24", "first": "Sebastian", "last": "Hansson", "pos": "Forward", "line": "Line 3"}, {"no": "2", "first": "Edwin", "last": "Nordin", "pos": "Back", "line": "Line 4"}, {"no": "79", "first": "Albin", "last": "Falk", "pos": "Forward", "line": "Line 4"}, {"no": "41", "first": "Elias", "last": "Hedlund", "pos": "Forward", "line": "Line 4"}, {"no": "8", "first": "Jacob", "last": "Söderberg-Nelson", "pos": "Forward", "line": "Line 4"}], "coaches": ["Head Coach: Holmström, Tomas", "Assistant Coach: Rankvist, Daniel"]}, {"name": "Kalix HC", "color": "White", "players": [{"no": "1", "first": "David", "last": "Ronnestål", "pos": "Målvakt", "line": ""}, {"no": "40", "first": "Jacob", "last": "Carlsson", "pos": "Målvakt", "line": ""}, {"no": "21", "first": "Robert", "last": "Von Gerdten", "pos": "Back", "line": "Line 1"}, {"no": "4", "first": "Emil", "last": "Ruud", "pos": "Back", "line": "Line 1"}, {"no": "31", "first": "Rasmus", "last": "Lindqvist-Nilsson", "pos": "Forward", "line": "Line 1"}, {"no": "24", "first": "Alfons", "last": "Ekblad", "pos": "Forward", "line": "Line 1"}, {"no": "19", "first": "Filip", "last": "Lindbäck", "pos": "Forward", "line": "Line 1"}, {"no": "26", "first": "Anton", "last": "Claesson", "pos": "Back", "line": "Line 2"}, {"no": "7", "first": "Veikka", "last": "Kärjä", "pos": "Back", "line": "Line 2"}, {"no": "16", "first": "Adam", "last": "Persson", "pos": "Forward", "line": "Line 2"}, {"no": "83", "first": "Kie", "last": "Vähäkangas", "pos": "Forward", "line": "Line 2"}, {"no": "27", "first": "William", "last": "Björck", "pos": "Forward", "line": "Line 2"}, {"no": "29", "first": "Måns", "last": "Ågren", "pos": "Back", "line": "Line 3"}, {"no": "5", "first": "Viktor", "last": "Abrahamsson", "pos": "Back", "line": "Line 3"}, {"no": "12", "first": "Liam", "last": "Lundberg", "pos": "Forward", "line": "Line 3"}, {"no": "17", "first": "Alexander", "last": "Burman", "pos": "Forward", "line": "Line 3"}, {"no": "9", "first": "Risto", "last": "Saarinen", "pos": "Forward", "line": "Line 3"}, {"no": "6", "first": "Luca", "last": "Habisreutinger", "pos": "Back", "line": "Line 4"}, {"no": "8", "first": "Arvid", "last": "Kruukka", "pos": "Forward", "line": "Line 4"}, {"no": "18", "first": "Rainers", "last": "Pavlovics", "pos": "Forward", "line": "Line 4"}, {"no": "25", "first": "Albin", "last": "Säteri", "pos": "Forward", "line": "Line 4"}], "coaches": ["Head Coach: Ittonen, Marcus", "Assistant Coach: Bäckman Lundbäck, Lucas"]}], "fetched": "2026-11-27 17:54", "gid": "1112977", "time": "19:00", "arena": "Isstadion LF Arena", "shots": null, "stats_src": "hockeyettan.se 2026-11-27", "next": {"date": "2026-12-12", "datum": "lördag 12 december", "time": "16:00", "opp": "Enköpings", "arena": "LF Arena", "line": "Nästa hemmamatch spelas lördag 12 december klockan 16.00 mot Enköpings, här i LF Arena. Välkomna tillbaka!", "src": "Hockeyettan Norra spelschema (2026-11-19)"}, "next_away": {"date": "2026-12-04", "datum": "fredag 4 december", "time": "19:00", "opp": "Kiruna", "arena": "Lombiahallen", "line": "Nästa bortamatch spelas fredag 4 december klockan 19.00 mot Kiruna, i Lombiahallen.", "src": "Hockeyettan Norra spelschema (2026-11-19)"}};const D0=D;
 /* Officiell line-up-ordning (swehockey): målvakter, femma 1–4 (backar, forwards), övriga. Speglat bortalag normaliseras som i speaker.py. */
 const LUORD=t=>{const P=t.players,ln=x=>parseInt(String(x.line||'').replace(/\D/g,''))||0,gk=P.filter(x=>x.pos==='Målvakt'),sk=P.filter(x=>x.pos!=='Målvakt'&&x.line),ex=P.filter(x=>x.pos!=='Målvakt'&&!x.line);
  if(sk.length>1&&ln(sk[0])>ln(sk[sk.length-1])){sk.reverse();gk.reverse()}
@@ -351,8 +564,8 @@ const fetchLineup=async gid=>{const r=await fetch('https://stats.swehockey.se/Ga
 const g=$('lmGid'),msg=$('lmMsg');g.value=D.gid||D.id||'';
 msg.textContent=(D.manual?'Manuellt laddad match '+D.id+': '+D.teams.map(t=>t.name).join(' – '):'Automatisk match: '+D0.teams.map(t=>t.name).join(' – ')+' ('+(D0.gid||D0.id)+')')+(D.fetched?' · Hämtad '+D.fetched:'')+(D.manual?' · källa: stats.swehockey.se (manuell)':' · källa: stats.swehockey.se');
 
-$('lmB').onclick=async()=>{const id=g.value.replace(/\D/g,'');if(!id){msg.textContent='Ange matchnummer';return}msg.textContent='Hämtar…';
-  try{const o=await fetchLineup(id);localStorage.setItem(OVK,JSON.stringify(o));msg.textContent='OK: '+o.teams.map(t=>t.name+' ('+t.players.length+')').join(' – ')+' – laddar om…';setTimeout(()=>location.reload(),400)}
+$('lmB').onclick=async()=>{const raw=g.value.trim();if(!raw){msg.textContent='Ange matchnummer eller grupp + match, till exempel 96210 031.';return}msg.textContent='Hämtar…';
+  try{const id=await GameId.resolveGameId(raw);g.value=id;const o=await fetchLineup(id);localStorage.setItem(OVK,JSON.stringify(o));msg.textContent='OK: '+o.teams.map(t=>t.name+' ('+t.players.length+')').join(' – ')+' – laddar om…';setTimeout(()=>location.reload(),400)}
   catch(e){msg.textContent='Misslyckades ('+e.message+')'}};
 
 
